@@ -17,7 +17,6 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "Lovy-tech | Smart Glasses OS",
   description: "Advanced e-OS system for smart glasses with real-time performance tracking",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -32,6 +31,3 @@ export default function RootLayout({
   )
 }
 
-
-
-import './globals.css'
