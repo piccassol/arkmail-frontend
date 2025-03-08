@@ -27,69 +27,93 @@ import {
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false)
-  const [showAIPopup, setShowAIPopup] = useState(false)
-  const [typedText, setTypedText] = useState("")
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [activePage, setActivePage] = useState("inbox")
-  const [inboxMessages, setInboxMessages] = useState([])
   const [showComposeModal, setShowComposeModal] = useState(false)
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
   const [emailTo, setEmailTo] = useState("")
-
+  const [emails, setEmails] = useState([])
+  const [emailActivity, setEmailActivity] = useState({})
+  const [newsletters, setNewsletters] = useState([])
+  
   useEffect(() => {
     setIsLoaded(true)
-    fetchInboxMessages()
+    fetchEmails()
+    fetchEmailActivity()
+    fetchNewsletters()
   }, [])
 
-  useEffect(() => {
-    if (showAIPopup) {
-      const text = "Looks like you don't have that many meetings today. Shall I play some Hans Zimmer essentials?"
-      let i = 0
-      const typingInterval = setInterval(() => {
-        if (i < text.length) {
-          setTypedText((prev) => prev + text.charAt(i))
-          i++
-        } else {
-          clearInterval(typingInterval)
-        }
-      }, 50)
-
-      return () => clearInterval(typingInterval)
-    }
-  }, [showAIPopup])
-
-  const fetchInboxMessages = async () => {
+  const fetchEmails = async () => {
     try {
-      const response = await fetch("https://pdg-ai-emailing.onrender.com/api/inbox")
+      const response = await fetch("http://localhost:8000/emails?folder=inbox", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      if (!response.ok) throw new Error("Failed to fetch emails")
       const data = await response.json()
-      setInboxMessages(data)
+      setEmails(data)
     } catch (error) {
-      console.error("Error fetching inbox messages:", error)
+      console.error("Error fetching emails:", error)
+    }
+  }
+
+  const fetchEmailActivity = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/analytics/email-activity", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      if (!response.ok) throw new Error("Failed to fetch email activity")
+      const data = await response.json()
+      setEmailActivity(data)
+    } catch (error) {
+      console.error("Error fetching email activity:", error)
+    }
+  }
+
+  const fetchNewsletters = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/newsletters", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      if (!response.ok) throw new Error("Failed to fetch newsletters")
+      const data = await response.json()
+      setNewsletters(data)
+    } catch (error) {
+      console.error("Error fetching newsletters:", error)
     }
   }
 
   const handleSendEmail = async () => {
     if (emailTo && emailSubject) {
       try {
-        const response = await fetch("https://pdg-ai-emailing.onrender.com/api/send-email", {
+        const response = await fetch("http://localhost:8000/emails", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ to: emailTo, subject: emailSubject, body: emailBody })
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            recipient_ids: [emailTo],
+            subject: emailSubject,
+            body: emailBody,
+            is_draft: false,
+          }),
         })
-        
-        if (response.ok) {
-          alert("Email sent successfully!")
-          setShowComposeModal(false)
-          setEmailTo("")
-          setEmailSubject("")
-          setEmailBody("")
-        } else {
-          alert("Failed to send email.")
-        }
+
+        if (!response.ok) throw new Error("Failed to send email")
+
+        setShowComposeModal(false)
+        setEmailTo("")
+        setEmailSubject("")
+        setEmailBody("")
+        alert("Email sent successfully!")
       } catch (error) {
         console.error("Error sending email:", error)
-        alert("An error occurred while sending email.")
+        alert("Failed to send email.")
       }
     } else {
       alert("Please fill in the recipient and subject fields.")
@@ -97,34 +121,68 @@ export default function Home() {
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden">
-      <Image src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/64F5502D-D3B7-4D38-9542-B7B6A829B396-ENJk5YFoodoqkBcGJkaK84WmFvX0qr.jpeg" alt="Background" fill className="object-cover" priority />
-      <main className="relative h-screen w-full pt-20 flex">
-        <div className="w-64 h-full bg-white/10 backdrop-blur-lg p-4">
-          <button onClick={() => setShowComposeModal(true)} className="mb-6 flex items-center justify-center px-4 py-3 text-white">
-            <Plus className="h-5 w-5" /> Compose
-          </button>
-          <div>
-            {inboxMessages.map((msg, index) => (
-              <div key={index} className="p-3 border-b border-gray-700">
-                <h4 className="text-white">{msg.subject}</h4>
-                <p className="text-gray-400 text-sm">{msg.sender}</p>
-              </div>
-            ))}
+    <div className="min-h-screen w-full overflow-hidden bg-gray-900 text-white">
+      <header className="p-4 flex justify-between items-center bg-gray-800">
+        <span className="text-2xl font-bold">PDGmail</span>
+        <Search className="w-5 h-5" />
+      </header>
+
+      <main className="p-4">
+        <button onClick={() => setShowComposeModal(true)} className="p-2 bg-blue-500 rounded">
+          Compose
+        </button>
+        <h2 className="text-xl mt-4">Inbox</h2>
+        <ul>
+          {emails.map((email) => (
+            <li key={email.id} className="p-2 border-b border-gray-700">{email.subject}</li>
+          ))}
+        </ul>
+
+        <h2 className="text-xl mt-4">Email Activity</h2>
+        <p>Open Rate: {emailActivity.openRate}%</p>
+        <p>Click Rate: {emailActivity.clickRate}%</p>
+
+        <h2 className="text-xl mt-4">Newsletters</h2>
+        <ul>
+          {newsletters.map((newsletter) => (
+            <li key={newsletter.id} className="p-2 border-b border-gray-700">{newsletter.name}</li>
+          ))}
+        </ul>
+      </main>
+
+      {showComposeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-gray-800 p-6 rounded-lg">
+            <h3 className="text-lg font-bold">New Email</h3>
+            <input
+              type="email"
+              value={emailTo}
+              onChange={(e) => setEmailTo(e.target.value)}
+              placeholder="Recipient"
+              className="w-full p-2 bg-gray-700 rounded mt-2"
+            />
+            <input
+              type="text"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              placeholder="Subject"
+              className="w-full p-2 bg-gray-700 rounded mt-2"
+            />
+            <textarea
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              placeholder="Message"
+              className="w-full p-2 bg-gray-700 rounded mt-2"
+            />
+            <button onClick={handleSendEmail} className="mt-4 bg-blue-500 p-2 rounded">
+              Send
+            </button>
+            <button onClick={() => setShowComposeModal(false)} className="mt-4 ml-2 bg-red-500 p-2 rounded">
+              Cancel
+            </button>
           </div>
         </div>
-        {showComposeModal && (
-          <div className="fixed inset-0 flex items-center justify-center">
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-white">New Message</h3>
-              <input type="email" placeholder="To" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} className="w-full p-2 mt-2" />
-              <input type="text" placeholder="Subject" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} className="w-full p-2 mt-2" />
-              <textarea placeholder="Message" value={emailBody} onChange={(e) => setEmailBody(e.target.value)} className="w-full p-2 mt-2 h-32" />
-              <button onClick={handleSendEmail} className="bg-blue-500 px-4 py-2 mt-3 text-white">Send</button>
-            </div>
-          </div>
-        )}
-      </main>
+      )}
     </div>
   )
 }
