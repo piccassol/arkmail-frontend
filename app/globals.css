@@ -163,3 +163,40 @@
     opacity: 0;
   }
 }
+
+/* Mobile Background Optimization */
+@media (max-width: 768px) {
+  .animated-background {
+    background-size: 300% 300%;
+  }
+}
+
+/* Background Image Optimization */
+.bg-image-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background-color: #000;
+}
+
+.bg-image-container img {
+  object-fit: cover;
+  object-position: center !important;
+  opacity: 0.95;
+}
+
+@media (max-width: 640px) {
+  .bg-image-container img {
+    object-position: center center !important;
+  }
+}
+
+//
+Update the backdrop blur for better contrast .backdrop-blur-lg {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
