@@ -23,6 +23,7 @@ import {
   Archive,
   Trash2,
   Star,
+  LogIn,
 } from "lucide-react"
 
 export default function Home() {
@@ -30,31 +31,29 @@ export default function Home() {
   const [showAIPopup, setShowAIPopup] = useState(false)
   const [typedText, setTypedText] = useState("")
   const [isPlaying, setIsPlaying] = useState(false)
-  const [activePage, setActivePage] = useState("inbox") // Default page
-
-  // Add a state for the compose modal
+  const [activePage, setActivePage] = useState("inbox")
   const [showComposeModal, setShowComposeModal] = useState(false)
-
-  // Add state for email composition
   const [emailSubject, setEmailSubject] = useState("")
   const [emailBody, setEmailBody] = useState("")
   const [emailTo, setEmailTo] = useState("")
+  const [currentView, setCurrentView] = useState("week")
+  const [currentMonth, setCurrentMonth] = useState("March 2025")
+  const [currentDate, setCurrentDate] = useState("March 5")
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
     setIsLoaded(true)
-
-    // Show AI popup after 3 seconds
     const popupTimer = setTimeout(() => {
       setShowAIPopup(true)
     }, 3000)
-
     return () => clearTimeout(popupTimer)
   }, [])
 
   useEffect(() => {
     if (showAIPopup) {
       const text =
-        "LLooks like you don't have that many meetings today. Shall I play some Hans Zimmer essentials to help you get into your Flow State?"
+        "Looks like you don't have that many meetings today. Shall I play some Hans Zimmer essentials to help you get into your Flow State?"
       let i = 0
       const typingInterval = setInterval(() => {
         if (i < text.length) {
@@ -64,92 +63,89 @@ export default function Home() {
           clearInterval(typingInterval)
         }
       }, 50)
-
       return () => clearInterval(typingInterval)
     }
   }, [showAIPopup])
-
-  const [currentView, setCurrentView] = useState("week")
-  const [currentMonth, setCurrentMonth] = useState("March 2025")
-  const [currentDate, setCurrentDate] = useState("March 5")
-  const [selectedEvent, setSelectedEvent] = useState(null)
 
   const handleEventClick = (event) => {
     setSelectedEvent(event)
   }
 
-  // Add functionality to change calendar dates
   const handlePreviousDay = () => {
-    // Parse the current date
     const currentDateObj = new Date(`${currentMonth} ${Number.parseInt(currentDate.split(" ")[1])}, 2025`)
-    // Subtract one day
     currentDateObj.setDate(currentDateObj.getDate() - 1)
-    // Update the current date
     setCurrentDate(`${currentDateObj.toLocaleString("default", { month: "long" })} ${currentDateObj.getDate()}`)
   }
 
   const handleNextDay = () => {
-    // Parse the current date
     const currentDateObj = new Date(`${currentMonth} ${Number.parseInt(currentDate.split(" ")[1])}, 2025`)
-    // Add one day
     currentDateObj.setDate(currentDateObj.getDate() + 1)
-    // Update the current date
     setCurrentDate(`${currentDateObj.toLocaleString("default", { month: "long" })} ${currentDateObj.getDate()}`)
   }
 
   const handleToday = () => {
-    // Set to March 5, 2025 (as in the original state)
     setCurrentDate("March 5")
   }
 
-  // Add functionality for mini calendar navigation
   const handlePreviousMonth = () => {
-    // Parse the current month
     const currentMonthObj = new Date(`${currentMonth} 1, 2025`)
-    // Subtract one month
     currentMonthObj.setMonth(currentMonthObj.getMonth() - 1)
-    // Update the current month
     setCurrentMonth(`${currentMonthObj.toLocaleString("default", { month: "long" })} ${currentMonthObj.getFullYear()}`)
   }
 
   const handleNextMonth = () => {
-    // Parse the current month
     const currentMonthObj = new Date(`${currentMonth} 1, 2025`)
-    // Add one month
     currentMonthObj.setMonth(currentMonthObj.getMonth() + 1)
-    // Update the current month
     setCurrentMonth(`${currentMonthObj.toLocaleString("default", { month: "long" })} ${currentMonthObj.getFullYear()}`)
   }
 
-  // Add functionality for mini calendar day selection
   const handleDaySelect = (day) => {
     if (day) {
       setCurrentDate(`${currentMonth.split(" ")[0]} ${day}`)
     }
   }
 
-  // Add functionality to send an email
   const handleSendEmail = () => {
     if (emailTo && emailSubject) {
-      // In a real app, you would send the email to a server
       console.log("Sending email to:", emailTo)
       console.log("Subject:", emailSubject)
       console.log("Body:", emailBody)
-
-      // Close the compose modal and reset fields
       setShowComposeModal(false)
       setEmailTo("")
       setEmailSubject("")
       setEmailBody("")
-
-      // Show a success message (you could add a toast notification here)
       alert("Email sent successfully!")
     } else {
       alert("Please fill in the recipient and subject fields.")
     }
   }
 
-  // Navigation pages
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying)
+  }
+
+  const handleSearch = (e) => {
+    e.preventDefault()
+    console.log("Searching for:", e.target.search.value)
+    // Implement search functionality here
+  }
+
+  const handleSettings = () => {
+    console.log("Opening settings")
+    // Implement settings functionality here
+  }
+
+  const handleLogin = () => {
+    setIsLoggedIn(!isLoggedIn)
+    console.log(isLoggedIn ? "Logging out" : "Logging in")
+    // Implement login/logout functionality here
+  }
+
+  const handleMenuClick = () => {
+    console.log("Opening menu")
+    // Implement menu functionality here
+  }
+
   const navPages = [
     { id: "inbox", name: "Inbox", icon: <Inbox className="h-5 w-5" /> },
     { id: "newsletters", name: "Newsletters", icon: <FileText className="h-5 w-5" /> },
@@ -374,12 +370,6 @@ export default function Home() {
     { name: "Family", color: "bg-orange-500" },
   ]
 
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying)
-    // Here you would typically also control the actual audio playback
-  }
-
-  // Sample newsletter categories
   const newsletterCategories = [
     { name: "Daily Digest", color: "bg-sky-500" },
     { name: "Tech Updates", color: "bg-green-500" },
@@ -679,11 +669,13 @@ export default function Home() {
 
       {/* Navigation */}
       <header
-        className={`absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-8 py-6 opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
+        className={`absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-8 py-6 opacity-0 ${isLoaded ? "animate-fade-in" : ""} bg-white/10 backdrop-blur-lg`}
         style={{ animationDelay: "0.2s" }}
       >
         <div className="flex items-center gap-4">
-          <Menu className="h-6 w-6 text-white" />
+          <button onClick={handleMenuClick} className="text-white hover:text-white/80 transition-colors">
+            <Menu className="h-6 w-6" />
+          </button>
           <span className="text-2xl font-bold dripping-text tracking-wide relative">
             PDGmail
             <span className="drip drip-1"></span>
@@ -695,18 +687,24 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="relative">
+          <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
             <input
               type="text"
+              name="search"
               placeholder="Search"
               className="rounded-full bg-white/10 backdrop-blur-sm pl-10 pr-4 py-2 text-white placeholder:text-white/70 border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/30"
             />
-          </div>
-          <Settings className="h-6 w-6 text-white drop-shadow-md" />
-          <div className="h-10 w-10 rounded-full bg-burgundy-500 flex items-center justify-center text-white font-bold shadow-md">
-            U
-          </div>
+          </form>
+          <button onClick={handleSettings} className="text-white hover:text-white/80 transition-colors">
+            <Settings className="h-6 w-6 drop-shadow-md" />
+          </button>
+          <button
+            onClick={handleLogin}
+            className="h-10 w-10 rounded-full bg-burgundy-500 flex items-center justify-center text-white font-bold shadow-md hover:bg-burgundy-600 transition-colors"
+          >
+            {isLoggedIn ? "J" : <LogIn className="h-5 w-5" />}
+          </button>
         </div>
       </header>
 
@@ -767,9 +765,8 @@ export default function Home() {
                 </div>
               ))}
 
-              {/* Update the mini calendar days to be clickable */}
               {miniCalendarDays.map((day, i) => (
-                <div
+                <button
                   key={i}
                   className={`text-xs rounded-full w-7 h-7 flex items-center justify-center ${
                     day === Number.parseInt(currentDate.split(" ")[1])
@@ -777,9 +774,10 @@ export default function Home() {
                       : "text-white hover:bg-white/20"
                   } ${!day ? "invisible" : ""} cursor-pointer`}
                   onClick={() => handleDaySelect(day)}
+                  disabled={!day}
                 >
                   {day}
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -798,12 +796,11 @@ export default function Home() {
 
         {/* Main Content Area */}
         <div
-          className={`flex-1 flex flex-col opacity-0 ${isLoaded ? "animate-fade-in" : ""}`}
+          className={`flex-1 flex flex-col opacity-0 ${isLoaded ? "animate-fade-in" : ""} bg-white/5 backdrop-blur-lg`}
           style={{ animationDelay: "0.6s" }}
         >
           {/* Page Controls */}
           <div className="flex items-center justify-between p-4 border-b border-white/20">
-            {/* Update the calendar navigation buttons */}
             <div className="flex items-center gap-4">
               <button
                 className="px-4 py-2 text-white burgundy-gradient hover:bg-opacity-80 transition-all duration-300 rounded-md font-medium shadow-md"
@@ -853,7 +850,7 @@ export default function Home() {
         {/* AI Popup */}
         {showAIPopup && (
           <div className="fixed bottom-8 right-8 z-20">
-            <div className="w-[450px] relative bg-gradient-to-br from-burgundy-400/30 via-burgundy-500/30 to-burgundy-600/30 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-burgundy-300/30 text-white">
+            <div className="w-[450px] relative bg-gradient-to-br from-burgundy-400/80 via-burgundy-500/80 to-burgundy-600/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-burgundy-300/30 text-white">
               <button
                 onClick={() => setShowAIPopup(false)}
                 className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
@@ -897,9 +894,10 @@ export default function Home() {
           </div>
         )}
 
+        {/* Event Modal */}
         {selectedEvent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className={`${selectedEvent.color} p-6 rounded-lg shadow-xl max-w-md w-full mx-4`}>
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+            <div className={`${selectedEvent.color} p-6 rounded-lg shadow-xl max-w-md w-full mx-4 bg-opacity-90`}>
               <h3 className="text-2xl font-bold mb-4 text-white">{selectedEvent.title}</h3>
               <div className="space-y-3 text-white">
                 <p className="flex items-center">
@@ -943,7 +941,7 @@ export default function Home() {
 
         {/* Compose Modal */}
         {showComposeModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
             <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl max-w-2xl w-full mx-4 p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-white">New Message</h3>
