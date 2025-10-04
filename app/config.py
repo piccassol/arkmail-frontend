@@ -2,7 +2,7 @@ import os
 from pydantic import BaseSettings
 
 class Settings(BaseSettings):
-    APP_NAME: str = "PDGmail API"
+    APP_NAME: str = "Arkmail API"
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://username:password@host:port/database_name")
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-for-jwt")
     ALGORITHM: str = "HS256"

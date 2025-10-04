@@ -15,8 +15,8 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: "Lovy-tech | Smart Glasses OS",
-  description: "Advanced e-OS system for smart glasses with real-time performance tracking",
+  title: "Arkmail | Smart Mail",
+  description: "Advanced e-OS system for smart mail with real-time performance tracking",
 }
 
 export default function RootLayout({

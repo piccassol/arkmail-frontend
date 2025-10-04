@@ -27,7 +27,7 @@ app.include_router(analytics.router)
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to PDGmail API"}
+    return {"message": "Welcome to Arkmail API"}
 
 @app.get("/test-db")
 async def test_db(db: Session = Depends(get_db)):
