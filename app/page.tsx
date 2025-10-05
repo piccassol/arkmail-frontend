@@ -28,7 +28,7 @@ import {
 } from "lucide-react"
 
 export default function Home() {
-   const router = useRouter()
+  const router = useRouter()
   const [isLoaded, setIsLoaded] = useState(false)
   const [showAIPopup, setShowAIPopup] = useState(false)
   const [typedText, setTypedText] = useState("")
@@ -60,14 +60,6 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    setIsLoaded(true)
-    const popupTimer = setTimeout(() => {
-      setShowAIPopup(true)
-    }, 3000)
-    return () => clearTimeout(popupTimer)
-  }, [])
-
-  useEffect(() => {
     if (showAIPopup) {
       const text =
         "Looks like you don't have that many meetings today. Shall I play some Hans Zimmer essentials to help you get into your Flow State?"
@@ -84,7 +76,7 @@ export default function Home() {
     }
   }, [showAIPopup])
 
-  const handleEventClick = (event) => {
+  const handleEventClick = (event: any) => {
     setSelectedEvent(event)
   }
 
@@ -116,7 +108,7 @@ export default function Home() {
     setCurrentMonth(`${currentMonthObj.toLocaleString("default", { month: "long" })} ${currentMonthObj.getFullYear()}`)
   }
 
-  const handleDaySelect = (day) => {
+  const handleDaySelect = (day: number | null) => {
     if (day) {
       setCurrentDate(`${currentMonth.split(" ")[0]} ${day}`)
     }
@@ -141,9 +133,9 @@ export default function Home() {
     setIsPlaying(!isPlaying)
   }
 
-  const handleSearch = (e) => {
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    console.log("Searching for:", e.target.search.value)
+    console.log("Searching for:", (e.target as any).search.value)
     // Implement search functionality here
   }
 
@@ -369,7 +361,7 @@ export default function Home() {
   const timeSlots = Array.from({ length: 9 }, (_, i) => i + 8) // 8 AM to 4 PM
 
   // Helper function to calculate event position and height
-  const calculateEventStyle = (startTime, endTime) => {
+  const calculateEventStyle = (startTime: string, endTime: string) => {
     const start = Number.parseInt(startTime.split(":")[0]) + Number.parseInt(startTime.split(":")[1]) / 60
     const end = Number.parseInt(endTime.split(":")[0]) + Number.parseInt(endTime.split(":")[1]) / 60
     const top = (start - 8) * 80 // 80px per hour
@@ -675,18 +667,19 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Background Image */}
-      <div className="bg-image-container">
-        <Image
-          src="/logo.png"
-          alt="Arkmail Branding"
-          fill
-          className="object-contain transform scale-80"
-          priority
-          sizes="100vw"
-          quality={100}
-        />
-      </div>
+ {/* Background Image */}
+<div className="bg-image-container flex justify-center items-center mx-auto mt-10">
+  <Image
+    src="/logo.png"
+    alt="Arkmail Branding"
+    width={2000}
+    height={2000}
+    className="object-contain"
+    priority
+    sizes="2000px"
+    quality={100}
+  />
+</div>
 
       {/* Navigation */}
       <header
