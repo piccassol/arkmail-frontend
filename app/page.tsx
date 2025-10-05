@@ -259,7 +259,7 @@ export default function Home() {
       id: 9,
       title: "Morning Standup",
       startTime: "08:30",
-      endTime: "09:30", // Changed from "09:00" to "09:30"
+      endTime: "09:30",
       color: "bg-blue-400",
       day: 2,
       description: "Daily team standup",
@@ -545,7 +545,6 @@ export default function Home() {
             </div>
             <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
               <h3 className="text-white font-medium mb-4">Recent Campaigns</h3>
-              {/* Update the Recent Campaigns section with clickable items */}
               {[1, 2, 3].map((_, index) => (
                 <div
                   key={index}
@@ -657,10 +656,10 @@ export default function Home() {
       {/* Background Image */}
       <div className="bg-image-container">
         <Image
-          src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/IMG_8942-I7Mn61E7J2drd14ukYV2RlcxEF6BX4.jpeg"
-          alt="High Above Society Branding"
+          src="/logo.png"
+          alt="Arkmail Branding"
           fill
-          className="object-cover"
+          className="object-contain transform scale-80"
           priority
           sizes="100vw"
           quality={100}
@@ -677,7 +676,7 @@ export default function Home() {
             <Menu className="h-6 w-6" />
           </button>
           <span className="text-2xl font-bold dripping-text tracking-wide relative">
-            PDGmail
+            Arkmail
             <span className="drip drip-1"></span>
             <span className="drip drip-2"></span>
             <span className="drip drip-3"></span>
@@ -715,7 +714,6 @@ export default function Home() {
           className={`w-64 h-full bg-white/10 backdrop-blur-lg p-4 shadow-xl border-r border-white/20 rounded-tr-3xl opacity-0 ${isLoaded ? "animate-fade-in" : ""} flex flex-col`}
           style={{ animationDelay: "0.4s" }}
         >
-          {/* Update the Compose button to open the modal */}
           <button
             className="mb-6 flex items-center justify-center gap-2 rounded-full burgundy-gradient hover:bg-opacity-80 transition-all duration-300 px-4 py-3 text-white w-full font-medium"
             onClick={() => setShowComposeModal(true)}
@@ -747,7 +745,6 @@ export default function Home() {
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white font-medium">{currentMonth}</h3>
-              {/* Update the mini calendar navigation buttons */}
               <div className="flex gap-1">
                 <button className="p-1 rounded-full hover:bg-white/20" onClick={handlePreviousMonth}>
                   <ChevronLeft className="h-4 w-4 text-white" />
