@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import {
   ChevronLeft,
@@ -27,6 +28,7 @@ import {
 } from "lucide-react"
 
 export default function Home() {
+   const router = useRouter()
   const [isLoaded, setIsLoaded] = useState(false)
   const [showAIPopup, setShowAIPopup] = useState(false)
   const [typedText, setTypedText] = useState("")
@@ -41,6 +43,21 @@ export default function Home() {
   const [currentDate, setCurrentDate] = useState("March 5")
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    setIsLoaded(true)
+    
+    // Check if user is logged in
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      setIsLoggedIn(true)
+    }
+    
+    const popupTimer = setTimeout(() => {
+      setShowAIPopup(true)
+    }, 3000)
+    return () => clearTimeout(popupTimer)
+  }, [])
 
   useEffect(() => {
     setIsLoaded(true)
@@ -136,9 +153,14 @@ export default function Home() {
   }
 
   const handleLogin = () => {
-    setIsLoggedIn(!isLoggedIn)
-    console.log(isLoggedIn ? "Logging out" : "Logging in")
-    // Implement login/logout functionality here
+    if (isLoggedIn) {
+      // Logout
+      localStorage.removeItem('access_token')
+      setIsLoggedIn(false)
+    } else {
+      // Navigate to login
+      router.push('/login')
+    }
   }
 
   const handleMenuClick = () => {
