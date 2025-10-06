@@ -672,11 +672,11 @@ export default function Home() {
   <Image
     src="/logo.png"
     alt="Arkmail Branding"
-    width={2000}
-    height={2000}
+    width={1250}
+    height={1250}
     className="object-contain"
     priority
-    sizes="2000px"
+    sizes="1250px"
     quality={100}
   />
 </div>
