@@ -1,27 +1,63 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
-export const authOptions = {
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'text' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // Replace with your auth logic (e.g., DB check)
-        if (credentials?.email === 'test@ark.ai' && credentials?.password === 'password') {
-          return { id: '1', name: 'Test User', email: 'test@ark.ai' };
+        try {
+          // Call your main site's authentication
+          const response = await fetch('https://arktechnologies.ai/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: credentials?.email,
+              password: credentials?.password,
+            }),
+          });
+
+          const user = await response.json();
+
+          if (response.ok && user) {
+            return user;
+          }
+          return null;
+        } catch (error) {
+          console.error('Auth error:', error);
+          return null;
         }
-        return null;
       },
     }),
   ],
   pages: {
     signIn: '/login',
   },
-};
+  session: {
+    strategy: 'jwt',
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+      }
+      return session;
+    },
+  },
+});
 
-const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };

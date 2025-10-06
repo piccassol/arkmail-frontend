@@ -9,8 +9,8 @@ import { UserPlus, Mail, Lock, User } from 'lucide-react';
 export default function SignupPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
-    username: '',
     password: '',
     confirmPassword: ''
   });
@@ -46,42 +46,27 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/register`, {
+      // Call the main site's signup API
+      const response = await fetch('https://arktechnologies.ai/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          name: formData.name,
           email: formData.email,
-          username: formData.username,
           password: formData.password
         })
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Registration failed');
+        throw new Error(data.error || 'Registration failed');
       }
 
-      const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/token`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: new URLSearchParams({
-          username: formData.username,
-          password: formData.password,
-          grant_type: 'password'
-        })
-      });
-
-      if (loginResponse.ok) {
-        const data = await loginResponse.json();
-        localStorage.setItem('access_token', data.access_token);
-        router.push('/');
-      } else {
-        router.push('/login');
-      }
+      // Redirect to login after successful signup
+      router.push('/login?message=Account created successfully. Please sign in.');
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -119,6 +104,25 @@ export default function SignupPage() {
             </div>
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
+                <label htmlFor="name" className="block text-sm font-medium text-white/80 mb-2">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50" />
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    autoComplete="name"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-all"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+              <div>
                 <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-2">
                   Email Address
                 </label>
@@ -134,25 +138,6 @@ export default function SignupPage() {
                     onChange={handleChange}
                     className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-all"
                     placeholder="you@example.com"
-                  />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-white/80 mb-2">
-                  Username
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-white/50" />
-                  <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    autoComplete="username"
-                    required
-                    value={formData.username}
-                    onChange={handleChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-all"
-                    placeholder="Choose a username"
                   />
                 </div>
               </div>
