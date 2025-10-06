@@ -57,11 +57,10 @@ export default function LoginPage() {
         <Image
           src="/logo.jpg"
           alt="Arkmail Branding"
-          width={1000}
-          height={1000}
-          className="object-contain"
+          fill
+          className="object-cover"
           priority
-          sizes="1000px"
+          sizes="(max-width: 768px) 100vw, 50vw"
           quality={100}
         />
       </div>

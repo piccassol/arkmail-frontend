@@ -33,7 +33,6 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
 
-    // Validation
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -64,7 +63,6 @@ export default function SignupPage() {
         throw new Error(errorData.detail || 'Registration failed');
       }
 
-      // Auto-login after successful registration
       const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/token`, {
         method: 'POST',
         headers: {
@@ -93,27 +91,23 @@ export default function SignupPage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      {/* Background Image */}
-      <div className="bg-image-container">
+      <div className="absolute inset-0 z-0">
         <Image
-          src="/logo.png"
+          src="/logo.jpg"
           alt="Arkmail Branding"
           fill
-          className="object-contain transform scale-80"
+          className="object-cover"
           priority
-          sizes="100vw"
+          sizes="(max-width: 768px) 100vw, 50vw"
           quality={100}
         />
       </div>
-
-      {/* Signup Container */}
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
         <div 
           className={`w-full max-w-md opacity-0 ${isLoaded ? 'animate-fade-in' : ''}`}
           style={{ animationDelay: '0.2s' }}
         >
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-8">
-            {/* Header */}
+          <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl border border-white/20 shadow-xl p-8">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold dripping-text tracking-wide relative inline-block text-white mb-2">
                 Arkmail
@@ -123,8 +117,6 @@ export default function SignupPage() {
               </h1>
               <p className="text-white/70 text-sm mt-2">Create your account</p>
             </div>
-
-            {/* Signup Form */}
             <form onSubmit={handleSignup} className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-white/80 mb-2">
@@ -145,7 +137,6 @@ export default function SignupPage() {
                   />
                 </div>
               </div>
-
               <div>
                 <label htmlFor="username" className="block text-sm font-medium text-white/80 mb-2">
                   Username
@@ -165,7 +156,6 @@ export default function SignupPage() {
                   />
                 </div>
               </div>
-
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-white/80 mb-2">
                   Password
@@ -185,7 +175,6 @@ export default function SignupPage() {
                   />
                 </div>
               </div>
-
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-white/80 mb-2">
                   Confirm Password
@@ -205,13 +194,11 @@ export default function SignupPage() {
                   />
                 </div>
               </div>
-
               {error && (
                 <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3">
                   <p className="text-red-200 text-sm">{error}</p>
                 </div>
               )}
-
               <button
                 type="submit"
                 disabled={loading}
@@ -227,8 +214,6 @@ export default function SignupPage() {
                 )}
               </button>
             </form>
-
-            {/* Sign In Link */}
             <div className="text-center mt-6">
               <p className="text-white/70 text-sm">
                 Already have an account?{' '}
