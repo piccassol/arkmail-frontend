@@ -27,6 +27,61 @@ import {
   LogIn,
 } from "lucide-react"
 
+// Types for API data
+interface MailchimpList {
+  id: string
+  name: string
+  stats: {
+    member_count: number
+    open_rate: number
+    click_rate: number
+  }
+  date_created: string
+}
+
+interface MailchimpCampaign {
+  id: string
+  settings: {
+    subject_line: string
+    title: string
+  }
+  send_time: string
+  recipients: {
+    list_id: string
+    recipient_count: number
+  }
+  report_summary: {
+    open_rate: number
+    click_rate: number
+    unique_opens: number
+  }
+  emails_sent: number
+}
+
+interface CalendarEvent {
+  id: string
+  summary: string
+  description?: string
+  location?: string
+  start: {
+    dateTime: string
+    timeZone: string
+  }
+  end: {
+    dateTime: string
+    timeZone: string
+  }
+  attendees?: Array<{
+    email: string
+    displayName?: string
+    organizer?: boolean
+  }>
+  organizer: {
+    email: string
+    displayName?: string
+  }
+}
+
 export default function Home() {
   const router = useRouter()
   const [isLoaded, setIsLoaded] = useState(false)
@@ -41,18 +96,30 @@ export default function Home() {
   const [currentView, setCurrentView] = useState("week")
   const [currentMonth, setCurrentMonth] = useState("March 2025")
   const [currentDate, setCurrentDate] = useState("March 5")
-  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  // New state for dynamic data
+  const [mailchimpLists, setMailchimpLists] = useState<MailchimpList[]>([])
+  const [campaigns, setCampaigns] = useState<MailchimpCampaign[]>([])
+  const [emailStats, setEmailStats] = useState({
+    openRate: 0,
+    clickRate: 0,
+    bounceRate: 0,
+    unsubscribeRate: 0,
+  })
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     setIsLoaded(true)
-    
-    // Check if user is logged in
-    const token = localStorage.getItem('access_token')
-    if (token) {
+
+    const token = localStorage.getItem("access_token")
+    if (token)  {
       setIsLoggedIn(true)
     }
-    
+
     const popupTimer = setTimeout(() => {
       setShowAIPopup(true)
     }, 3000)
@@ -60,9 +127,15 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
+    if (isLoggedIn) {
+      loadAllData()
+    }
+  }, [isLoggedIn])
+
+  useEffect(() => {
     if (showAIPopup) {
       const text =
-        "Looks like you don't have that many meetings today. Shall I play some Hans Zimmer essentials to help you get into your Flow State?"
+  "Looks like you have quite a few meetings today. Shall I play some Mozart essentials to help you get into your Flow State?"
       let i = 0
       const typingInterval = setInterval(() => {
         if (i < text.length) {
@@ -75,6 +148,117 @@ export default function Home() {
       return () => clearInterval(typingInterval)
     }
   }, [showAIPopup])
+
+  const loadAllData = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const token = localStorage.getItem("access_token")
+
+      try {
+        const listsRes = await fetch("/api/mailchimp/lists", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (listsRes.ok) {
+          const lists = await listsRes.json()
+          setMailchimpLists(lists)
+        }
+      } catch (err) {
+        console.error("Mailchimp lists error:", err)
+      }
+
+      try {
+        const campaignsRes = await fetch("/api/mailchimp/campaigns", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (campaignsRes.ok) {
+          const campaignsData = await campaignsRes.json()
+          setCampaigns(campaignsData)
+        }
+      } catch (err) {
+        console.error("Campaigns error:", err)
+      }
+
+      try {
+        const statsRes = await fetch("/api/mailchimp/stats", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (statsRes.ok) {
+          const stats = await statsRes.json()
+          setEmailStats(stats)
+        }
+      } catch (err) {
+        console.error("Stats error:", err)
+      }
+
+      await loadCalendarEvents()
+    } catch (err) {
+      console.error("Error loading data:", err)
+      setError("Failed to load data. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadCalendarEvents = async () => {
+    try {
+      const token = localStorage.getItem("access_token")
+      const now = new Date()
+      const startOfWeek = new Date(now)
+      startOfWeek.setDate(now.getDate() - now.getDay())
+      startOfWeek.setHours(0, 0, 0, 0)
+
+      const endOfWeek = new Date(startOfWeek)
+      endOfWeek.setDate(startOfWeek.getDate() + 7)
+
+      const response = await fetch(
+        `/api/calendar/events?timeMin=${startOfWeek.toISOString()}&timeMax=${endOfWeek.toISOString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      )
+
+      if (response.ok) {
+        const events = await response.json()
+        setCalendarEvents(events)
+      }
+    } catch (err) {
+      console.error("Error loading calendar events:", err)
+    }
+  }
+
+  const convertCalendarEvents = () => {
+    return calendarEvents.map((event, index) => {
+      const start = new Date(event.start.dateTime)
+      const end = new Date(event.end.dateTime)
+      const dayOfWeek = start.getDay()
+
+      const colors = [
+        "bg-blue-500",
+        "bg-green-500",
+        "bg-purple-500",
+        "bg-yellow-500",
+        "bg-indigo-500",
+        "bg-pink-500",
+        "bg-teal-500",
+        "bg-cyan-500",
+      ]
+
+      return {
+        id: event.id,
+        title: event.summary,
+        startTime: start.toTimeString().slice(0, 5),
+        endTime: end.toTimeString().slice(0, 5),
+        color: colors[index % colors.length],
+        day: dayOfWeek + 1,
+        description: event.description || "No description",
+        location: event.location || "No location",
+        attendees: event.attendees?.map((a) => a.displayName || a.email) || [],
+        organizer: event.organizer.displayName || event.organizer.email,
+      }
+    })
+  }
 
   const handleEventClick = (event: any) => {
     setSelectedEvent(event)
@@ -114,16 +298,35 @@ export default function Home() {
     }
   }
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     if (emailTo && emailSubject) {
-      console.log("Sending email to:", emailTo)
-      console.log("Subject:", emailSubject)
-      console.log("Body:", emailBody)
-      setShowComposeModal(false)
-      setEmailTo("")
-      setEmailSubject("")
-      setEmailBody("")
-      alert("Email sent successfully!")
+      setLoading(true)
+      try {
+        const token = localStorage.getItem("access_token")
+        const response = await fetch("/api/gmail/send", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ to: emailTo, subject: emailSubject, body: emailBody }),
+        })
+
+        if (response.ok) {
+          setShowComposeModal(false)
+          setEmailTo("")
+          setEmailSubject("")
+          setEmailBody("")
+          alert("Email sent successfully!")
+        } else {
+          throw new Error("Failed to send email")
+        }
+      } catch (error) {
+        console.error("Send email error:", error)
+        alert("Failed to send email. Please try again.")
+      } finally {
+        setLoading(false)
+      }
     } else {
       alert("Please fill in the recipient and subject fields.")
     }
@@ -136,28 +339,23 @@ export default function Home() {
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     console.log("Searching for:", (e.target as any).search.value)
-    // Implement search functionality here
   }
 
   const handleSettings = () => {
     console.log("Opening settings")
-    // Implement settings functionality here
   }
 
   const handleLogin = () => {
     if (isLoggedIn) {
-      // Logout
-      localStorage.removeItem('access_token')
+      localStorage.removeItem("access_token")
       setIsLoggedIn(false)
     } else {
-      // Navigate to login
-      router.push('/login')
+      router.push("/login")
     }
   }
 
   const handleMenuClick = () => {
     console.log("Opening menu")
-    // Implement menu functionality here
   }
 
   const navPages = [
@@ -171,8 +369,7 @@ export default function Home() {
     { id: "trash", name: "Trash", icon: <Trash2 className="h-5 w-5" /> },
   ]
 
-  // Updated sample calendar events with all events before 4 PM
-  const events = [
+  const sampleEvents = [
     {
       id: 1,
       title: "Team Meeting",
@@ -233,150 +430,28 @@ export default function Home() {
       attendees: ["Product Team", "Design Team"],
       organizer: "Product Owner",
     },
-    {
-      id: 6,
-      title: "Product Demo",
-      startTime: "11:00",
-      endTime: "12:00",
-      color: "bg-pink-500",
-      day: 5,
-      description: "Showcase new features to stakeholders",
-      location: "Demo Room",
-      attendees: ["Stakeholders", "Dev Team"],
-      organizer: "Tech Lead",
-    },
-    {
-      id: 7,
-      title: "Marketing Meeting",
-      startTime: "13:00",
-      endTime: "14:00",
-      color: "bg-teal-500",
-      day: 6,
-      description: "Discuss Q3 marketing strategy",
-      location: "Marketing Office",
-      attendees: ["Marketing Team"],
-      organizer: "Marketing Director",
-    },
-    {
-      id: 8,
-      title: "Code Review",
-      startTime: "15:00",
-      endTime: "16:00",
-      color: "bg-cyan-500",
-      day: 7,
-      description: "Review pull requests for new feature",
-      location: "Dev Area",
-      attendees: ["Dev Team"],
-      organizer: "Senior Developer",
-    },
-    {
-      id: 9,
-      title: "Morning Standup",
-      startTime: "08:30",
-      endTime: "09:30",
-      color: "bg-blue-400",
-      day: 2,
-      description: "Daily team standup",
-      location: "Slack Huddle",
-      attendees: ["Development Team"],
-      organizer: "Scrum Master",
-    },
-    {
-      id: 10,
-      title: "Design Review",
-      startTime: "14:30",
-      endTime: "15:45",
-      color: "bg-purple-400",
-      day: 5,
-      description: "Review new UI designs",
-      location: "Design Lab",
-      attendees: ["UX Team", "Product Manager"],
-      organizer: "Lead Designer",
-    },
-    {
-      id: 11,
-      title: "Investor Meeting",
-      startTime: "10:30",
-      endTime: "12:00",
-      color: "bg-red-400",
-      day: 7,
-      description: "Quarterly investor update",
-      location: "Board Room",
-      attendees: ["Executive Team", "Investors"],
-      organizer: "CEO",
-    },
-    {
-      id: 12,
-      title: "Team Training",
-      startTime: "09:30",
-      endTime: "11:30",
-      color: "bg-green-400",
-      day: 4,
-      description: "New tool onboarding session",
-      location: "Training Room",
-      attendees: ["All Departments"],
-      organizer: "HR",
-    },
-    {
-      id: 13,
-      title: "Budget Review",
-      startTime: "13:30",
-      endTime: "15:00",
-      color: "bg-yellow-400",
-      day: 3,
-      description: "Quarterly budget analysis",
-      location: "Finance Office",
-      attendees: ["Finance Team", "Department Heads"],
-      organizer: "CFO",
-    },
-    {
-      id: 14,
-      title: "Client Presentation",
-      startTime: "11:00",
-      endTime: "12:30",
-      color: "bg-orange-400",
-      day: 6,
-      description: "Present new project proposal",
-      location: "Client Office",
-      attendees: ["Sales Team", "Client Representatives"],
-      organizer: "Account Executive",
-    },
-    {
-      id: 15,
-      title: "Product Planning",
-      startTime: "14:00",
-      endTime: "15:30",
-      color: "bg-pink-400",
-      day: 1,
-      description: "Roadmap discussion for Q3",
-      location: "Strategy Room",
-      attendees: ["Product Team", "Engineering Leads"],
-      organizer: "Product Manager",
-    },
   ]
 
-  // Sample calendar days for the week view
+  const events = isLoggedIn && calendarEvents.length > 0 ? convertCalendarEvents() : sampleEvents
+
   const weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
   const weekDates = [3, 4, 5, 6, 7, 8, 9]
-  const timeSlots = Array.from({ length: 9 }, (_, i) => i + 8) // 8 AM to 4 PM
+  const timeSlots = Array.from({ length: 9 }, (_, i) => i + 8)
 
-  // Helper function to calculate event position and height
   const calculateEventStyle = (startTime: string, endTime: string) => {
     const start = Number.parseInt(startTime.split(":")[0]) + Number.parseInt(startTime.split(":")[1]) / 60
     const end = Number.parseInt(endTime.split(":")[0]) + Number.parseInt(endTime.split(":")[1]) / 60
-    const top = (start - 8) * 80 // 80px per hour
+    const top = (start - 8) * 80
     const height = (end - start) * 80
     return { top: `${top}px`, height: `${height}px` }
   }
 
-  // Sample calendar for mini calendar
   const daysInMonth = 31
-  const firstDayOffset = 5 // Friday is the first day of the month in this example
+  const firstDayOffset = 5
   const miniCalendarDays = Array.from({ length: daysInMonth + firstDayOffset }, (_, i) =>
     i < firstDayOffset ? null : i - firstDayOffset + 1,
   )
 
-  // Sample my calendars
   const myCalendars = [
     { name: "My Calendar", color: "bg-blue-500" },
     { name: "Work", color: "bg-green-500" },
@@ -390,14 +465,12 @@ export default function Home() {
     { name: "Industry News", color: "bg-purple-500" },
   ]
 
-  // Sample email lists
   const emailLists = [
     { name: "Customers", color: "bg-yellow-500", count: 1243 },
     { name: "Partners", color: "bg-orange-500", count: 87 },
     { name: "Subscribers", color: "bg-red-500", count: 5621 },
   ]
 
-  // Sample email activity data
   const emailActivity = {
     openRate: 68,
     clickRate: 42,
@@ -405,7 +478,6 @@ export default function Home() {
     unsubscribeRate: 0.8,
   }
 
-  // Render content based on active page
   const renderPageContent = () => {
     switch (activePage) {
       case "newsletters":
@@ -451,158 +523,219 @@ export default function Home() {
             </div>
           </div>
         )
+
       case "email-lists":
         return (
           <div className="p-4">
             <h2 className="text-xl font-bold text-white mb-6">Email Lists</h2>
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-white/20">
-                    <th className="text-left p-4 text-white/80 font-medium">List Name</th>
-                    <th className="text-left p-4 text-white/80 font-medium">Subscribers</th>
-                    <th className="text-left p-4 text-white/80 font-medium">Last Updated</th>
-                    <th className="text-left p-4 text-white/80 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {emailLists.map((list, index) => (
-                    <tr key={index} className="border-b border-white/10 hover:bg-white/5">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-sm ${list.color}`}></div>
-                          <span className="text-white">{list.name}</span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-white">{list.count.toLocaleString()}</td>
-                      <td className="p-4 text-white/70">
-                        {new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}
-                      </td>
-                      <td className="p-4">
-                        <button
-                          className="px-3 py-1 burgundy-gradient hover:bg-opacity-80 rounded text-white text-xs transition-colors"
-                          onClick={() => alert(`Managing ${list.name} list`)}
-                        >
-                          Manage
-                        </button>
-                      </td>
+            {loading ? (
+              <div className="text-white text-center">Loading...</div>
+            ) : (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/20">
+                      <th className="text-left p-4 text-white/80 font-medium">List Name</th>
+                      <th className="text-left p-4 text-white/80 font-medium">Subscribers</th>
+                      <th className="text-left p-4 text-white/80 font-medium">Open Rate</th>
+                      <th className="text-left p-4 text-white/80 font-medium">Last Updated</th>
+                      <th className="text-left p-4 text-white/80 font-medium">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="p-4 flex justify-end">
-                <button
-                  className="px-4 py-2 burgundy-gradient hover:bg-opacity-80 rounded-md text-white text-sm transition-colors flex items-center gap-2"
-                  onClick={() => alert("Creating new email list")}
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>New List</span>
-                </button>
+                  </thead>
+                  <tbody>
+                    {mailchimpLists.length > 0 ? (
+                      mailchimpLists.map((list, index) => {
+                        const colors = ["bg-yellow-500", "bg-orange-500", "bg-red-500", "bg-purple-500"]
+                        return (
+                          <tr key={list.id} className="border-b border-white/10 hover:bg-white/5">
+                            <td className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-3 h-3 rounded-sm ${colors[index % colors.length]}`}></div>
+                                <span className="text-white">{list.name}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 text-white">{list.stats.member_count.toLocaleString()}</td>
+                            <td className="p-4 text-white">{(list.stats.open_rate * 100).toFixed(1)}%</td>
+                            <td className="p-4 text-white/70">{new Date(list.date_created).toLocaleDateString()}</td>
+                            <td className="p-4">
+                              <button
+                                className="px-3 py-1 burgundy-gradient hover:bg-opacity-80 rounded text-white text-xs transition-colors"
+                                onClick={() =>
+                                  window.open(`https://admin.mailchimp.com/lists/members/?id=${list.id}`, "_blank")
+                                }
+                              >
+                                Manage
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-white/70">
+                          {isLoggedIn ? "No email lists found" : "Please log in to view email lists"}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+                <div className="p-4 flex justify-end">
+                  <button
+                    className="px-4 py-2 burgundy-gradient hover:bg-opacity-80 rounded-md text-white text-sm transition-colors flex items-center gap-2"
+                    onClick={() => window.open("https://admin.mailchimp.com/lists/new-list/", "_blank")}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>New List</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )
+
       case "emailing-activity":
         return (
           <div className="p-4">
             <h2 className="text-xl font-bold text-white mb-6">Emailing Activity</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                <h3 className="text-white font-medium mb-3">Open Rate</h3>
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-bold text-white">{emailActivity.openRate}%</span>
-                  <span className="text-green-400 text-sm mb-1">+2.4%</span>
-                </div>
-                <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
-                  <div className="bg-sky-500 h-full rounded-full" style={{ width: `${emailActivity.openRate}%` }}></div>
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                <h3 className="text-white font-medium mb-3">Click Rate</h3>
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-bold text-white">{emailActivity.clickRate}%</span>
-                  <span className="text-green-400 text-sm mb-1">+1.7%</span>
-                </div>
-                <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
-                  <div
-                    className="bg-sky-500 h-full rounded-full"
-                    style={{ width: `${emailActivity.clickRate}%` }}
-                  ></div>
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                <h3 className="text-white font-medium mb-3">Bounce Rate</h3>
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-bold text-white">{emailActivity.bounceRate}%</span>
-                  <span className="text-red-400 text-sm mb-1">+0.3%</span>
-                </div>
-                <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
-                  <div
-                    className="bg-red-500 h-full rounded-full"
-                    style={{ width: `${emailActivity.bounceRate * 10}%` }}
-                  ></div>
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                <h3 className="text-white font-medium mb-3">Unsubscribe Rate</h3>
-                <div className="flex items-end gap-2">
-                  <span className="text-3xl font-bold text-white">{emailActivity.unsubscribeRate}%</span>
-                  <span className="text-green-400 text-sm mb-1">-0.2%</span>
-                </div>
-                <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
-                  <div
-                    className="bg-orange-500 h-full rounded-full"
-                    style={{ width: `${emailActivity.unsubscribeRate * 20}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-              <h3 className="text-white font-medium mb-4">Recent Campaigns</h3>
-              {[1, 2, 3].map((_, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center p-2 hover:bg-white/5 rounded cursor-pointer"
-                  onClick={() =>
-                    alert(`Viewing details for ${["Monthly Newsletter", "Product Update", "Special Offer"][index]}`)
-                  }
-                >
-                  <div>
-                    <h4 className="text-white font-medium">
-                      {["Monthly Newsletter", "Product Update", "Special Offer"][index]}
-                    </h4>
-                    <p className="text-white/60 text-xs">
-                      Sent {index + 1} {index === 0 ? "day" : "days"} ago • {Math.floor(Math.random() * 5000) + 1000}{" "}
-                      recipients
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className="text-white text-sm font-medium">{Math.floor(Math.random() * 20) + 60}%</div>
-                      <div className="text-white/60 text-xs">Open rate</div>
+            {loading ? (
+              <div className="text-white text-center">Loading...</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+                    <h3 className="text-white font-medium mb-3">Open Rate</h3>
+                    <div className="flex items-end gap-2">
+                      <span className="text-3xl font-bold text-white">{emailStats.openRate || emailActivity.openRate}%</span>
+                      <span className="text-green-400 text-sm mb-1">+2.4%</span>
                     </div>
-                    <button
-                      className="p-2 text-white/70 hover:text-white"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        alert(
-                          `Viewing detailed analytics for ${["Monthly Newsletter", "Product Update", "Special Offer"][index]}`,
-                        )
-                      }}
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </button>
+                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="bg-sky-500 h-full rounded-full"
+                        style={{ width: `${emailStats.openRate || emailActivity.openRate}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+                    <h3 className="text-white font-medium mb-3">Click Rate</h3>
+                    <div className="flex items-end gap-2">
+                      <span className="text-3xl font-bold text-white">{emailStats.clickRate || emailActivity.clickRate}%</span>
+                      <span className="text-green-400 text-sm mb-1">+1.7%</span>
+                    </div>
+                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="bg-sky-500 h-full rounded-full"
+                        style={{ width: `${emailStats.clickRate || emailActivity.clickRate}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+                    <h3 className="text-white font-medium mb-3">Bounce Rate</h3>
+                    <div className="flex items-end gap-2">
+                      <span className="text-3xl font-bold text-white">{emailStats.bounceRate || emailActivity.bounceRate}%</span>
+                      <span className="text-red-400 text-sm mb-1">+0.3%</span>
+                    </div>
+                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="bg-red-500 h-full rounded-full"
+                        style={{ width: `${(emailStats.bounceRate || emailActivity.bounceRate) * 10}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+                    <h3 className="text-white font-medium mb-3">Unsubscribe Rate</h3>
+                    <div className="flex items-end gap-2">
+                      <span className="text-3xl font-bold text-white">
+                        {emailStats.unsubscribeRate || emailActivity.unsubscribeRate}%
+                      </span>
+                      <span className="text-green-400 text-sm mb-1">-0.2%</span>
+                    </div>
+                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="bg-orange-500 h-full rounded-full"
+                        style={{ width: `${(emailStats.unsubscribeRate || emailActivity.unsubscribeRate) * 20}%` }}
+                      ></div>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
+                  <h3 className="text-white font-medium mb-4">Recent Campaigns</h3>
+                  {campaigns.length > 0 ? (
+                    campaigns.slice(0, 3).map((campaign, index) => (
+                      <div
+                        key={campaign.id}
+                        className="flex justify-between items-center p-2 hover:bg-white/5 rounded cursor-pointer"
+                        onClick={() =>
+                          window.open(`https://admin.mailchimp.com/campaigns/show/?id=${campaign.id}`, "_blank")
+                        }
+                      >
+                        <div>
+                          <h4 className="text-white font-medium">{campaign.settings.subject_line}</h4>
+                          <p className="text-white/60 text-xs">
+                            Sent {new Date(campaign.send_time).toLocaleDateString()} •{" "}
+                            {campaign.recipients.recipient_count} recipients
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <div className="text-white text-sm font-medium">
+                              {(campaign.report_summary.open_rate * 100).toFixed(1)}%
+                            </div>
+                            <div className="text-white/60 text-xs">Open rate</div>
+                          </div>
+                          <button className="p-2 text-white/70 hover:text-white">
+                            <ChevronRight className="h-5 w-5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      {[
+                        { title: "Monthly Newsletter", days: 1, recipients: 3451, openRate: 72 },
+                        { title: "Product Update", days: 2, recipients: 2178, openRate: 68 },
+                        { title: "Special Offer", days: 3, recipients: 4923, openRate: 79 },
+                      ].map((campaign, index) => (
+                        <div
+                          key={index}
+                          className="flex justify-between items-center p-2 hover:bg-white/5 rounded cursor-pointer"
+                          onClick={() => alert(`Viewing details for ${campaign.title}`)}
+                        >
+                          <div>
+                            <h4 className="text-white font-medium">{campaign.title}</h4>
+                            <p className="text-white/60 text-xs">
+                              Sent {campaign.days} {campaign.days === 1 ? "day" : "days"} ago • {campaign.recipients}{" "}
+                              recipients
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <div className="text-white text-sm font-medium">{campaign.openRate}%</div>
+                              <div className="text-white/60 text-xs">Open rate</div>
+                            </div>
+                            <button
+                              className="p-2 text-white/70 hover:text-white"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                alert(`Viewing detailed analytics for ${campaign.title}`)
+                              }}
+                            >
+                              <ChevronRight className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )
+
       default:
         return (
           <div className="flex-1 overflow-auto p-4">
             <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl h-full">
-              {/* Week Header */}
               <div className="grid grid-cols-8 border-b border-white/20">
                 <div className="p-2 text-center text-white/50 text-xs"></div>
                 {weekDays.map((day, i) => (
@@ -617,9 +750,7 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Time Grid */}
               <div className="grid grid-cols-8">
-                {/* Time Labels */}
                 <div className="text-white/70">
                   {timeSlots.map((time, i) => (
                     <div key={i} className="h-20 border-b border-white/10 pr-2 text-right text-xs">
@@ -628,14 +759,12 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* Days Columns */}
                 {Array.from({ length: 7 }).map((_, dayIndex) => (
                   <div key={dayIndex} className="border-l border-white/20 relative">
                     {timeSlots.map((_, timeIndex) => (
                       <div key={timeIndex} className="h-20 border-b border-white/10"></div>
                     ))}
 
-                    {/* Events */}
                     {events
                       .filter((event) => event.day === dayIndex + 1)
                       .map((event, i) => {
@@ -667,21 +796,19 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
- {/* Background Image */}
-<div className="bg-image-container flex justify-center items-center mx-auto mt-10">
-  <Image
-    src="/logo.png"
-    alt="Arkmail Branding"
-    width={1000}
-    height={1000}
-    className="object-contain"
-    priority
-    sizes="1000px"
-    quality={100}
-  />
-</div>
+      <div className="bg-image-container flex justify-center items-center mx-auto mt-10">
+        <Image
+          src="/logo.png"
+          alt="Arkmail Branding"
+          width={1000}
+          height={1000}
+          className="object-contain"
+          priority
+          sizes="1000px"
+          quality={100}
+        />
+      </div>
 
-      {/* Navigation */}
       <header
         className={`absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-8 py-6 opacity-0 ${isLoaded ? "animate-fade-in" : ""} bg-white/10 backdrop-blur-lg`}
         style={{ animationDelay: "0.2s" }}
@@ -722,9 +849,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="relative h-screen w-full pt-20 flex">
-        {/* Sidebar */}
         <div
           className={`w-64 h-full bg-white/10 backdrop-blur-lg p-4 shadow-xl border-r border-white/20 rounded-tr-3xl opacity-0 ${isLoaded ? "animate-fade-in" : ""} flex flex-col`}
           style={{ animationDelay: "0.4s" }}
@@ -737,7 +862,6 @@ export default function Home() {
             <span>Compose</span>
           </button>
 
-          {/* Navigation Pages */}
           <div className="space-y-1 mb-6">
             {navPages.map((page) => (
               <button
@@ -756,7 +880,6 @@ export default function Home() {
             ))}
           </div>
 
-          {/* Mini Calendar */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-white font-medium">{currentMonth}</h3>
@@ -794,7 +917,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Storage Usage */}
           <div className="mt-auto pt-4 border-t border-white/10">
             <div className="flex justify-between items-center mb-2">
               <span className="text-white/70 text-xs">Storage</span>
@@ -806,12 +928,10 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Main Content Area */}
         <div
           className={`flex-1 flex flex-col opacity-0 ${isLoaded ? "animate-fade-in" : ""} bg-white/5 backdrop-blur-lg`}
           style={{ animationDelay: "0.6s" }}
         >
-          {/* Page Controls */}
           <div className="flex items-center justify-between p-4 border-b border-white/20">
             <div className="flex items-center gap-4">
               <button
@@ -855,58 +975,58 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Page Content */}
           {renderPageContent()}
         </div>
 
-        {/* AI Popup */}
         {showAIPopup && (
-          <div className="fixed bottom-8 right-8 z-20">
-            <div className="w-[450px] relative bg-gradient-to-br from-burgundy-400/80 via-burgundy-500/80 to-burgundy-600/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-burgundy-300/30 text-white">
-              <button
-                onClick={() => setShowAIPopup(false)}
-                className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-              <div className="flex gap-3">
-                <div className="flex-shrink-0">
-                  <Sparkles className="h-5 w-5 text-burgundy-300" />
-                </div>
-                <div className="min-h-[80px]">
-                  <p className="text-base font-light">{typedText}</p>
-                </div>
-              </div>
-              <div className="mt-6 flex gap-3">
-                <button
-                  onClick={togglePlay}
-                  className="flex-1 py-2.5 burgundy-gradient hover:bg-opacity-80 rounded-xl text-sm transition-colors font-medium"
-                >
-                  Yes
-                </button>
-                <button
-                  onClick={() => setShowAIPopup(false)}
-                  className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm transition-colors font-medium"
-                >
-                  No
-                </button>
-              </div>
-              {isPlaying && (
-                <div className="mt-4 flex items-center justify-between">
-                  <button
-                    className="flex items-center justify-center gap-2 rounded-xl burgundy-gradient hover:bg-opacity-80 px-4 py-2.5 text-white text-sm transition-colors"
-                    onClick={togglePlay}
-                  >
-                    <Pause className="h-4 w-4" />
-                    <span>Pause Hans Zimmer</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+  <div className="fixed bottom-8 right-8 z-20">
+    <div className="w-[450px] relative bg-gradient-to-br from-burgundy-400/80 via-burgundy-500/80 to-burgundy-600/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-burgundy-300/30 text-white">
+      <button
+        onClick={() => setShowAIPopup(false)}
+        className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      <div className="flex gap-3">
+        <div className="flex-shrink-0">
+          <Sparkles className="h-5 w-5 text-burgundy-300" />
+        </div>
+        <div className="min-h-[80px]">
+          <p className="text-base font-light">{typedText}</p>
+        </div>
+      </div>
+      <div className="mt-6 flex gap-3">
+        <button
+          onClick={togglePlay}
+          className="flex-1 py-2.5 burgundy-gradient hover:bg-opacity-80 rounded-xl text-sm transition-colors font-medium"
+        >
+          Yes
+        </button>
+        <button
+          onClick={() => setShowAIPopup(false)}
+          className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm transition-colors font-medium"
+        >
+          No
+        </button>
+      </div>
+      {isPlaying && (
+        <div className="mt-4">
+          <iframe
+            width="100%"
+            height="250"
+            src="https://www.youtube.com/embed/Wcgd1oCbW4g?autoplay=1"
+            title="Mozart Essentials"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="rounded-lg"
+          ></iframe>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
-        {/* Event Modal */}
         {selectedEvent && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
             <div className={`${selectedEvent.color} p-6 rounded-lg shadow-xl max-w-md w-full mx-4 bg-opacity-90`}>
@@ -951,7 +1071,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Compose Modal */}
         {showComposeModal && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
             <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl max-w-2xl w-full mx-4 p-6">
@@ -1003,10 +1122,11 @@ export default function Home() {
                   </button>
                   <button
                     onClick={handleSendEmail}
+                    disabled={loading}
                     className="px-4 py-2 burgundy-gradient hover:bg-opacity-80 text-white rounded-md flex items-center gap-2"
                   >
                     <Send className="h-4 w-4" />
-                    <span>Send</span>
+                    <span>{loading ? "Sending..." : "Send"}</span>
                   </button>
                 </div>
               </div>
@@ -1014,6 +1134,35 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {loading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
+              <span className="text-white font-medium">Loading...</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="fixed bottom-8 left-8 z-20 bg-red-500/90 backdrop-blur-lg rounded-xl p-4 border border-red-300/30 max-w-md">
+          <div className="flex items-start gap-3">
+            <X className="h-5 w-5 text-white flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-white font-medium mb-1">Error</h4>
+              <p className="text-white/90 text-sm">{error}</p>
+            </div>
+            <button
+              onClick={() => setError(null)}
+              className="ml-auto text-white/70 hover:text-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
