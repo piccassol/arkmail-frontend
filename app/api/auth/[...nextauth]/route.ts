@@ -12,8 +12,7 @@ const handler = NextAuth({
       async authorize(credentials) {
         try {
           // Call your main site's authentication
-          const response = await fetch('https://arktechnologies.ai/api/auth/login', {
-            method: 'POST',
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
             headers: {
               'Content-Type': 'application/json',
             },
