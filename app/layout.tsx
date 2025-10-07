@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Poppins, Inter } from "next/font/google"
 import "./globals.css"
+import { Providers } from "./providers"
 
 // Load Inter font
 const inter = Inter({ subsets: ["latin"] })
@@ -26,7 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${poppins.variable} font-poppins`}>{children}</body>
+      <body className={`${poppins.variable} font-poppins`}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }
