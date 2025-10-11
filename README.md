@@ -10,7 +10,6 @@
 [![Release](https://img.shields.io/badge/Mainnet-Coming%20Soon-yellow)](https://mail.arktechnologies.ai/)
 [![Build](https://img.shields.io/github/actions/workflow/status/piccassol/arkmail-frontend/deploy.yml?label=Build)](https://github.com/piccassol/arkmail-frontend/actions)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](LICENSE)
-[![Hosted](https://img.shields.io/badge/Hosted%20on-Vercel-black)](https://mail.arktechnologies.ai/)
 [![AI Core](https://img.shields.io/badge/Powered%20by-ArkTechnologies.ai-purple)](https://arktechnologies.ai/)
 
 ---
@@ -125,4 +124,5 @@ MIT License © 2025 [Ark Technologies](https://arktechnologies.ai)
 💬 [Dashboard](https://arktechnologies.ai/dashboard)
 
 ```
+
 
