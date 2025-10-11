@@ -11,12 +11,12 @@ import { toast } from "sonner";
 import {
   Send,
   RefreshCw,
-  Plus,
   Trash2,
   Mail,
   Inbox,
   FolderArchive,
 } from "lucide-react";
+import SendEmailForm from "@/components/SendEmailForm";
 
 export default function SentPage() {
   const { data: session, status } = useSession();
@@ -116,10 +116,6 @@ export default function SentPage() {
               >
                 <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
               </Button>
-              <Button onClick={() => router.push("/compose")}>
-                <Plus className="h-4 w-4 mr-2" />
-                Compose
-              </Button>
             </div>
           </div>
         </div>
@@ -167,6 +163,10 @@ export default function SentPage() {
           </div>
 
           <div className="lg:col-span-3">
+            <Card className="p-6 mb-6">
+              <SendEmailForm onSend={fetchSent} /> {/* Pass fetchSent to refresh list */}
+            </Card>
+
             {emails.length === 0 ? (
               <Card className="p-12 text-center">
                 <Mail className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
@@ -174,10 +174,6 @@ export default function SentPage() {
                 <p className="text-muted-foreground mb-4">
                   You haven't sent any emails yet.
                 </p>
-                <Button onClick={() => router.push("/compose")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Compose Email
-                </Button>
               </Card>
             ) : (
               <div className="space-y-2">
