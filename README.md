@@ -61,27 +61,7 @@ Start your trial now at [Ark Dashboard](https://arktechnologies.ai/dashboard)
 | **Frontend** | Next.js, React, TailwindCSS |
 | **Backend** | FastAPI, Python |
 | **AI Layer** | Ark Agent Core |
-| **Hosting** | Vercel (Frontend) / Render (Backend) |
-| **Database / Automation** | PostgreSQL + N8N |
-
----
-
-## 🚢 Deployment
-
-```bash
-# Clone the repo
-git clone https://github.com/piccassol/arkmail-frontend.git
-cd arkmail-frontend
-
-# Install dependencies
-npm install
-
-# Run the development server
-npm run dev
-
-# Build for production
-npm run build
-````
+| **Database / Automation** | PostgreSQL + Ark Workflows |
 
 ---
 
@@ -124,5 +104,6 @@ MIT License © 2025 [Ark Technologies](https://arktechnologies.ai)
 💬 [Dashboard](https://arktechnologies.ai/dashboard)
 
 ```
+
 
 
