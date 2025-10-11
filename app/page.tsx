@@ -134,8 +134,7 @@ export default function Home() {
 
   useEffect(() => {
     if (showAIPopup) {
-      const text =
-  "SShall I play some Mozart essentials to help you get into your Flow State?"
+      const text = "SShall I play some Mozart essentials to help you get into your Flow State?"
       let i = 0
       const typingInterval = setInterval(() => {
         if (i < text.length) {
@@ -152,12 +151,18 @@ export default function Home() {
   const loadAllData = async () => {
     setLoading(true)
     setError(null)
-
+  
     try {
+      // TODO: Implement Mailchimp integration when backend is ready
+      // For now, using mock data
+      console.log("Mailchimp and Calendar integrations coming soon!")
+      
+      // Uncomment these when backend routes are ready:
+      /*
       const token = localStorage.getItem("access_token")
-
+  
       try {
-        const listsRes = await fetch("/api/mailchimp/lists", {
+        const listsRes = await fetch("https://arkmail-api.onrender.com/api/mailchimp/lists", {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (listsRes.ok) {
@@ -167,9 +172,9 @@ export default function Home() {
       } catch (err) {
         console.error("Mailchimp lists error:", err)
       }
-
+  
       try {
-        const campaignsRes = await fetch("/api/mailchimp/campaigns", {
+        const campaignsRes = await fetch("https://arkmail-api.onrender.com/api/mailchimp/campaigns", {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (campaignsRes.ok) {
@@ -179,9 +184,9 @@ export default function Home() {
       } catch (err) {
         console.error("Campaigns error:", err)
       }
-
+  
       try {
-        const statsRes = await fetch("/api/mailchimp/stats", {
+        const statsRes = await fetch("https://arkmail-api.onrender.com/api/mailchimp/stats", {
           headers: { Authorization: `Bearer ${token}` },
         })
         if (statsRes.ok) {
@@ -191,8 +196,9 @@ export default function Home() {
       } catch (err) {
         console.error("Stats error:", err)
       }
-
+  
       await loadCalendarEvents()
+      */
     } catch (err) {
       console.error("Error loading data:", err)
       setError("Failed to load data. Please try again.")
@@ -200,25 +206,30 @@ export default function Home() {
       setLoading(false)
     }
   }
-
+  
   const loadCalendarEvents = async () => {
+    // TODO: Implement Google Calendar integration when backend is ready
+    console.log("Calendar integration coming soon!")
+    
+    // Uncomment when backend route is ready:
+    /*
     try {
       const token = localStorage.getItem("access_token")
       const now = new Date()
       const startOfWeek = new Date(now)
       startOfWeek.setDate(now.getDate() - now.getDay())
       startOfWeek.setHours(0, 0, 0, 0)
-
+  
       const endOfWeek = new Date(startOfWeek)
       endOfWeek.setDate(startOfWeek.getDate() + 7)
-
+  
       const response = await fetch(
-        `/api/calendar/events?timeMin=${startOfWeek.toISOString()}&timeMax=${endOfWeek.toISOString()}`,
+        `https://arkmail-api.onrender.com/api/calendar/events?timeMin=${startOfWeek.toISOString()}&timeMax=${endOfWeek.toISOString()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       )
-
+  
       if (response.ok) {
         const events = await response.json()
         setCalendarEvents(events)
@@ -226,6 +237,7 @@ export default function Home() {
     } catch (err) {
       console.error("Error loading calendar events:", err)
     }
+    */
   }
 
   const convertCalendarEvents = () => {
@@ -303,24 +315,25 @@ export default function Home() {
       setLoading(true)
       try {
         const token = localStorage.getItem("access_token")
-        const response = await fetch("/api/gmail/send", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ to: emailTo, subject: emailSubject, body: emailBody }),
-        })
-
-        if (response.ok) {
-          setShowComposeModal(false)
-          setEmailTo("")
-          setEmailSubject("")
-          setEmailBody("")
-          alert("Email sent successfully!")
-        } else {
-          throw new Error("Failed to send email")
+        if (!token) {
+          alert("Please log in to send emails")
+          return
         }
+  
+        // Use the sendEmail function from fetchData.ts
+        const { sendEmail } = await import('./api/fetchData')
+        await sendEmail({
+          to: emailTo,
+          subject: emailSubject,
+          html: emailBody,
+          token: token
+        })
+  
+        setShowComposeModal(false)
+        setEmailTo("")
+        setEmailSubject("")
+        setEmailBody("")
+        alert("Email sent successfully!")
       } catch (error) {
         console.error("Send email error:", error)
         alert("Failed to send email. Please try again.")
@@ -979,53 +992,53 @@ export default function Home() {
         </div>
 
         {showAIPopup && (
-  <div className="fixed bottom-8 right-8 z-20">
-    <div className="w-[450px] relative bg-gradient-to-br from-burgundy-400/80 via-burgundy-500/80 to-burgundy-600/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-burgundy-300/30 text-white">
-      <button
-        onClick={() => setShowAIPopup(false)}
-        className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
-      >
-        <X className="h-5 w-5" />
-      </button>
-      <div className="flex gap-3">
-        <div className="flex-shrink-0">
-          <Sparkles className="h-5 w-5 text-burgundy-300" />
-        </div>
-        <div className="min-h-[80px]">
-          <p className="text-base font-light">{typedText}</p>
-        </div>
-      </div>
-      <div className="mt-6 flex gap-3">
-        <button
-          onClick={togglePlay}
-          className="flex-1 py-2.5 burgundy-gradient hover:bg-opacity-80 rounded-xl text-sm transition-colors font-medium"
-        >
-          Yes
-        </button>
-        <button
-          onClick={() => setShowAIPopup(false)}
-          className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm transition-colors font-medium"
-        >
-          No
-        </button>
-      </div>
-      {isPlaying && (
-        <div className="mt-4">
-          <iframe
-            width="100%"
-            height="250"
-            src="https://www.youtube.com/embed/Wcgd1oCbW4g?autoplay=1"
-            title="Mozart Essentials"
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            className="rounded-lg"
-          ></iframe>
-        </div>
-      )}
-    </div>
-  </div>
-)}
+          <div className="fixed bottom-8 right-8 z-20">
+            <div className="w-[450px] relative bg-gradient-to-br from-burgundy-400/80 via-burgundy-500/80 to-burgundy-600/80 backdrop-blur-lg p-6 rounded-2xl shadow-xl border border-burgundy-300/30 text-white">
+              <button
+                onClick={() => setShowAIPopup(false)}
+                className="absolute top-2 right-2 text-white/70 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <div className="flex gap-3">
+                <div className="flex-shrink-0">
+                  <Sparkles className="h-5 w-5 text-burgundy-300" />
+                </div>
+                <div className="min-h-[80px]">
+                  <p className="text-base font-light">{typedText}</p>
+                </div>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={togglePlay}
+                  className="flex-1 py-2.5 burgundy-gradient hover:bg-opacity-80 rounded-xl text-sm transition-colors font-medium"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setShowAIPopup(false)}
+                  className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-sm transition-colors font-medium"
+                >
+                  No
+                </button>
+              </div>
+              {isPlaying && (
+                <div className="mt-4">
+                  <iframe
+                    width="100%"
+                    height="250"
+                    src="https://www.youtube.com/embed/Wcgd1oCbW4g?autoplay=1"
+                    title="Mozart Essentials"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="rounded-lg"
+                  ></iframe>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {selectedEvent && (
           <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">

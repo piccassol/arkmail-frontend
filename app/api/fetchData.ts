@@ -28,7 +28,7 @@ token: string; // JWT token for authentication
 }) {
 try {
   const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://arkmail-api.onrender.com";
-  const response = await fetch(`${API_BASE_URL}/emails/send`, {
+  const response = await fetch(`${API_BASE_URL}/api/emails/send`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -38,6 +38,8 @@ try {
   });
 
   if (!response.ok) {
+    const errorData = await response.text();
+    console.error('Email send error response:', errorData);
     throw new Error(`HTTP error! Status: ${response.status}`);
   }
 
