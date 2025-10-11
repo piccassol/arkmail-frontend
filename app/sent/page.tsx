@@ -16,7 +16,6 @@ import {
   Inbox,
   FolderArchive,
 } from "lucide-react";
-import SendEmailForm from "@/components/SendEmailForm";
 
 export default function SentPage() {
   const { data: session, status } = useSession();
