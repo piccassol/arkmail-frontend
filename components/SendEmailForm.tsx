@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { sendEmail } from '../api/fetchData';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { useToast } from './ui/use-toast';
+import { sendEmail } from '/api/fetchData';
+import { Button } from '/ui/button';
+import { Input } from '/ui/input';
+import { Textarea } from '/ui/textarea';
+import { useToast } from '/ui/use-toast';
 
 interface SendEmailFormProps {
   onSend?: () => void; // Callback to refresh email list
