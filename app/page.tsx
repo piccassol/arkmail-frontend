@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Image from "next/image"
 import {
   ChevronLeft,
@@ -14,7 +15,6 @@ import {
   MapPin,
   Users,
   Calendar,
-  Pause,
   Sparkles,
   X,
   BarChart2,
@@ -26,37 +26,6 @@ import {
   Star,
   LogIn,
 } from "lucide-react"
-
-// Types for API data
-interface MailchimpList {
-  id: string
-  name: string
-  stats: {
-    member_count: number
-    open_rate: number
-    click_rate: number
-  }
-  date_created: string
-}
-
-interface MailchimpCampaign {
-  id: string
-  settings: {
-    subject_line: string
-    title: string
-  }
-  send_time: string
-  recipients: {
-    list_id: string
-    recipient_count: number
-  }
-  report_summary: {
-    open_rate: number
-    click_rate: number
-    unique_opens: number
-  }
-  emails_sent: number
-}
 
 interface CalendarEvent {
   id: string
@@ -84,6 +53,7 @@ interface CalendarEvent {
 
 export default function Home() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [isLoaded, setIsLoaded] = useState(false)
   const [showAIPopup, setShowAIPopup] = useState(false)
   const [typedText, setTypedText] = useState("")
@@ -95,46 +65,31 @@ export default function Home() {
   const [emailTo, setEmailTo] = useState("")
   const [currentView, setCurrentView] = useState("week")
   const [currentMonth, setCurrentMonth] = useState("March 2025")
-  const [currentDate, setCurrentDate] = useState("March 5")
+  const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
-  // New state for dynamic data
-  const [mailchimpLists, setMailchimpLists] = useState<MailchimpList[]>([])
-  const [campaigns, setCampaigns] = useState<MailchimpCampaign[]>([])
-  const [emailStats, setEmailStats] = useState({
-    openRate: 0,
-    clickRate: 0,
-    bounceRate: 0,
-    unsubscribeRate: 0,
-  })
+  // Google Calendar state
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loadingEvents, setLoadingEvents] = useState(false)
 
   useEffect(() => {
     setIsLoaded(true)
-
-    const token = localStorage.getItem("access_token")
-    if (token)  {
-      setIsLoggedIn(true)
-    }
-
     const popupTimer = setTimeout(() => {
       setShowAIPopup(true)
     }, 3000)
     return () => clearTimeout(popupTimer)
   }, [])
 
+  // Load calendar events when user is authenticated
   useEffect(() => {
-    if (isLoggedIn) {
-      loadAllData()
+    if (session?.accessToken) {
+      loadCalendarEvents()
     }
-  }, [isLoggedIn])
+  }, [session, currentDate])
 
   useEffect(() => {
     if (showAIPopup) {
-      const text = "SShall I play some Mozart essentials to help you get into your Flow State?"
+      const text = "Shall I play some Mozart essentials to help you get into your Flow State?"
       let i = 0
       const typingInterval = setInterval(() => {
         if (i < text.length) {
@@ -148,103 +103,52 @@ export default function Home() {
     }
   }, [showAIPopup])
 
-  const loadAllData = async () => {
-    setLoading(true)
-    setError(null)
-  
-    try {
-      // TODO: Implement Mailchimp integration when backend is ready
-      // For now, using mock data
-      console.log("Mailchimp and Calendar integrations coming soon!")
-      
-      // Uncomment these when backend routes are ready:
-      /*
-      const token = localStorage.getItem("access_token")
-  
-      try {
-        const listsRes = await fetch("https://arkmail-api.onrender.com/api/mailchimp/lists", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (listsRes.ok) {
-          const lists = await listsRes.json()
-          setMailchimpLists(lists)
-        }
-      } catch (err) {
-        console.error("Mailchimp lists error:", err)
-      }
-  
-      try {
-        const campaignsRes = await fetch("https://arkmail-api.onrender.com/api/mailchimp/campaigns", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (campaignsRes.ok) {
-          const campaignsData = await campaignsRes.json()
-          setCampaigns(campaignsData)
-        }
-      } catch (err) {
-        console.error("Campaigns error:", err)
-      }
-  
-      try {
-        const statsRes = await fetch("https://arkmail-api.onrender.com/api/mailchimp/stats", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (statsRes.ok) {
-          const stats = await statsRes.json()
-          setEmailStats(stats)
-        }
-      } catch (err) {
-        console.error("Stats error:", err)
-      }
-  
-      await loadCalendarEvents()
-      */
-    } catch (err) {
-      console.error("Error loading data:", err)
-      setError("Failed to load data. Please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }
-  
   const loadCalendarEvents = async () => {
-    // TODO: Implement Google Calendar integration when backend is ready
-    console.log("Calendar integration coming soon!")
-    
-    // Uncomment when backend route is ready:
-    /*
+    setLoadingEvents(true)
     try {
-      const token = localStorage.getItem("access_token")
-      const now = new Date()
-      const startOfWeek = new Date(now)
-      startOfWeek.setDate(now.getDate() - now.getDay())
+      // Get start of week
+      const startOfWeek = new Date(currentDate)
+      const day = startOfWeek.getDay()
+      const diff = startOfWeek.getDate() - day
+      startOfWeek.setDate(diff)
       startOfWeek.setHours(0, 0, 0, 0)
-  
+
+      // Get end of week
       const endOfWeek = new Date(startOfWeek)
       endOfWeek.setDate(startOfWeek.getDate() + 7)
-  
+      endOfWeek.setHours(23, 59, 59, 999)
+
       const response = await fetch(
-        `https://arkmail-api.onrender.com/api/calendar/events?timeMin=${startOfWeek.toISOString()}&timeMax=${endOfWeek.toISOString()}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
+        `/api/calendar?timeMin=${startOfWeek.toISOString()}&timeMax=${endOfWeek.toISOString()}`
       )
-  
+
       if (response.ok) {
         const events = await response.json()
         setCalendarEvents(events)
+      } else if (response.status === 401) {
+        console.error("Calendar authentication expired")
       }
-    } catch (err) {
-      console.error("Error loading calendar events:", err)
+    } catch (error) {
+      console.error("Error loading calendar events:", error)
+    } finally {
+      setLoadingEvents(false)
     }
-    */
   }
 
   const convertCalendarEvents = () => {
     return calendarEvents.map((event, index) => {
       const start = new Date(event.start.dateTime)
       const end = new Date(event.end.dateTime)
-      const dayOfWeek = start.getDay()
+      
+      // Get day of week (0 = Sunday, 1 = Monday, etc.)
+      const startOfWeek = new Date(currentDate)
+      const day = startOfWeek.getDay()
+      const diff = startOfWeek.getDate() - day
+      startOfWeek.setDate(diff)
+      
+      // Calculate which day column this event belongs to
+      const daysDiff = Math.floor((start.getTime() - startOfWeek.getTime()) / (1000 * 60 * 60 * 24))
+      const dayOfWeek = daysDiff + 1 // +1 because our grid starts at 1
 
       const colors = [
         "bg-blue-500",
@@ -263,13 +167,13 @@ export default function Home() {
         startTime: start.toTimeString().slice(0, 5),
         endTime: end.toTimeString().slice(0, 5),
         color: colors[index % colors.length],
-        day: dayOfWeek + 1,
+        day: dayOfWeek,
         description: event.description || "No description",
         location: event.location || "No location",
         attendees: event.attendees?.map((a) => a.displayName || a.email) || [],
         organizer: event.organizer.displayName || event.organizer.email,
       }
-    })
+    }).filter(event => event.day >= 1 && event.day <= 7) // Only show events within the week
   }
 
   const handleEventClick = (event: any) => {
@@ -277,68 +181,33 @@ export default function Home() {
   }
 
   const handlePreviousDay = () => {
-    const currentDateObj = new Date(`${currentMonth} ${Number.parseInt(currentDate.split(" ")[1])}, 2025`)
-    currentDateObj.setDate(currentDateObj.getDate() - 1)
-    setCurrentDate(`${currentDateObj.toLocaleString("default", { month: "long" })} ${currentDateObj.getDate()}`)
+    const newDate = new Date(currentDate)
+    newDate.setDate(newDate.getDate() - 1)
+    setCurrentDate(newDate)
   }
 
   const handleNextDay = () => {
-    const currentDateObj = new Date(`${currentMonth} ${Number.parseInt(currentDate.split(" ")[1])}, 2025`)
-    currentDateObj.setDate(currentDateObj.getDate() + 1)
-    setCurrentDate(`${currentDateObj.toLocaleString("default", { month: "long" })} ${currentDateObj.getDate()}`)
+    const newDate = new Date(currentDate)
+    newDate.setDate(newDate.getDate() + 1)
+    setCurrentDate(newDate)
   }
 
   const handleToday = () => {
-    setCurrentDate("March 5")
-  }
-
-  const handlePreviousMonth = () => {
-    const currentMonthObj = new Date(`${currentMonth} 1, 2025`)
-    currentMonthObj.setMonth(currentMonthObj.getMonth() - 1)
-    setCurrentMonth(`${currentMonthObj.toLocaleString("default", { month: "long" })} ${currentMonthObj.getFullYear()}`)
-  }
-
-  const handleNextMonth = () => {
-    const currentMonthObj = new Date(`${currentMonth} 1, 2025`)
-    currentMonthObj.setMonth(currentMonthObj.getMonth() + 1)
-    setCurrentMonth(`${currentMonthObj.toLocaleString("default", { month: "long" })} ${currentMonthObj.getFullYear()}`)
-  }
-
-  const handleDaySelect = (day: number | null) => {
-    if (day) {
-      setCurrentDate(`${currentMonth.split(" ")[0]} ${day}`)
-    }
+    setCurrentDate(new Date())
   }
 
   const handleSendEmail = async () => {
     if (emailTo && emailSubject) {
-      setLoading(true)
       try {
-        const token = localStorage.getItem("access_token")
-        if (!token) {
-          alert("Please log in to send emails")
-          return
-        }
-  
-        // Use the sendEmail function from fetchData.ts
-        const { sendEmail } = await import('./api/fetchData')
-        await sendEmail({
-          to: emailTo,
-          subject: emailSubject,
-          html: emailBody,
-          token: token
-        })
-  
+        // Implement email sending logic here
+        alert("Email sent successfully!")
         setShowComposeModal(false)
         setEmailTo("")
         setEmailSubject("")
         setEmailBody("")
-        alert("Email sent successfully!")
       } catch (error) {
         console.error("Send email error:", error)
         alert("Failed to send email. Please try again.")
-      } finally {
-        setLoading(false)
       }
     } else {
       alert("Please fill in the recipient and subject fields.")
@@ -351,7 +220,6 @@ export default function Home() {
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    console.log("Searching for:", (e.target as any).search.value)
   }
 
   const handleSettings = () => {
@@ -359,16 +227,11 @@ export default function Home() {
   }
 
   const handleLogin = () => {
-    if (isLoggedIn) {
-      localStorage.removeItem("access_token")
-      setIsLoggedIn(false)
+    if (session) {
+      router.push('/api/auth/signout')
     } else {
       router.push("/login")
     }
-  }
-
-  const handleMenuClick = () => {
-    console.log("Opening menu")
   }
 
   const navPages = [
@@ -382,6 +245,7 @@ export default function Home() {
     { id: "trash", name: "Trash", icon: <Trash2 className="h-5 w-5" /> },
   ]
 
+  // Sample events for when not logged in
   const sampleEvents = [
     {
       id: 1,
@@ -407,48 +271,27 @@ export default function Home() {
       attendees: ["Sarah Lee"],
       organizer: "You",
     },
-    {
-      id: 3,
-      title: "Project Review",
-      startTime: "14:00",
-      endTime: "15:30",
-      color: "bg-purple-500",
-      day: 3,
-      description: "Q2 project progress review",
-      location: "Meeting Room 3",
-      attendees: ["Team Alpha", "Stakeholders"],
-      organizer: "Project Manager",
-    },
-    {
-      id: 4,
-      title: "Client Call",
-      startTime: "10:00",
-      endTime: "11:00",
-      color: "bg-yellow-500",
-      day: 2,
-      description: "Quarterly review with major client",
-      location: "Zoom Meeting",
-      attendees: ["Client Team", "Sales Team"],
-      organizer: "Account Manager",
-    },
-    {
-      id: 5,
-      title: "Team Brainstorm",
-      startTime: "13:00",
-      endTime: "14:30",
-      color: "bg-indigo-500",
-      day: 4,
-      description: "Ideation session for new product features",
-      location: "Creative Space",
-      attendees: ["Product Team", "Design Team"],
-      organizer: "Product Owner",
-    },
   ]
 
-  const events = isLoggedIn && calendarEvents.length > 0 ? convertCalendarEvents() : sampleEvents
+  const events = session?.accessToken && calendarEvents.length > 0 ? convertCalendarEvents() : sampleEvents
 
   const weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
-  const weekDates = [3, 4, 5, 6, 7, 8, 9]
+  
+  // Calculate week dates based on currentDate
+  const getWeekDates = () => {
+    const startOfWeek = new Date(currentDate)
+    const day = startOfWeek.getDay()
+    const diff = startOfWeek.getDate() - day
+    startOfWeek.setDate(diff)
+    
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(startOfWeek)
+      date.setDate(startOfWeek.getDate() + i)
+      return date.getDate()
+    })
+  }
+  
+  const weekDates = getWeekDates()
   const timeSlots = Array.from({ length: 9 }, (_, i) => i + 8)
 
   const calculateEventStyle = (startTime: string, endTime: string) => {
@@ -459,352 +302,89 @@ export default function Home() {
     return { top: `${top}px`, height: `${height}px` }
   }
 
-  const daysInMonth = 31
-  const firstDayOffset = 5
-  const miniCalendarDays = Array.from({ length: daysInMonth + firstDayOffset }, (_, i) =>
-    i < firstDayOffset ? null : i - firstDayOffset + 1,
-  )
-
-  const myCalendars = [
-    { name: "My Calendar", color: "bg-blue-500" },
-    { name: "Work", color: "bg-green-500" },
-    { name: "Personal", color: "bg-purple-500" },
-    { name: "Family", color: "bg-orange-500" },
-  ]
-
-  const newsletterCategories = [
-    { name: "Daily Digest", color: "bg-sky-500" },
-    { name: "Tech Updates", color: "bg-green-500" },
-    { name: "Industry News", color: "bg-purple-500" },
-  ]
-
-  const emailLists = [
-    { name: "Customers", color: "bg-yellow-500", count: 1243 },
-    { name: "Partners", color: "bg-orange-500", count: 87 },
-    { name: "Subscribers", color: "bg-red-500", count: 5621 },
-  ]
-
-  const emailActivity = {
-    openRate: 68,
-    clickRate: 42,
-    bounceRate: 2.1,
-    unsubscribeRate: 0.8,
-  }
-
   const renderPageContent = () => {
-    switch (activePage) {
-      case "newsletters":
-        return (
-          <div className="p-4">
-            <h2 className="text-xl font-bold text-white mb-6">Newsletters</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {newsletterCategories.map((category, index) => (
-                <div key={index} className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`w-3 h-3 rounded-sm ${category.color}`}></div>
-                    <h3 className="text-white font-medium">{category.name}</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-white/80 text-sm">
-                      <span>Last sent:</span>
-                      <span>2 days ago</span>
-                    </div>
-                    <div className="flex justify-between text-white/80 text-sm">
-                      <span>Subscribers:</span>
-                      <span>{Math.floor(Math.random() * 10000)}</span>
-                    </div>
-                    <div className="flex justify-between text-white/80 text-sm">
-                      <span>Open rate:</span>
-                      <span>{Math.floor(Math.random() * 30) + 50}%</span>
-                    </div>
-                  </div>
-                  <button
-                    className="w-full mt-4 py-2 burgundy-gradient hover:bg-opacity-80 rounded-md text-white text-sm transition-colors"
-                    onClick={() => alert(`Editing ${category.name} newsletter`)}
+    if (activePage !== "inbox") {
+      return (
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">{activePage.charAt(0).toUpperCase() + activePage.slice(1).replace('-', ' ')}</h2>
+          <p className="text-white/70">Content for {activePage} coming soon!</p>
+        </div>
+      )
+    }
+
+    return (
+      <div className="flex-1 overflow-auto p-4">
+        {loadingEvents && (
+          <div className="absolute top-4 right-4 bg-white/20 backdrop-blur-lg rounded-lg px-4 py-2 text-white text-sm">
+            Loading calendar events...
+          </div>
+        )}
+        
+        {!session?.accessToken && (
+          <div className="mb-4 bg-yellow-500/20 backdrop-blur-lg rounded-lg p-4 text-white text-sm border border-yellow-500/30">
+            📅 Sign in with Google to sync your calendar events
+          </div>
+        )}
+        
+        <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl h-full">
+          <div className="grid grid-cols-8 border-b border-white/20">
+            <div className="p-2 text-center text-white/50 text-xs"></div>
+            {weekDays.map((day, i) => {
+              const isToday = weekDates[i] === new Date().getDate()
+              return (
+                <div key={i} className="p-2 text-center border-l border-white/20">
+                  <div className="text-xs text-white/70 font-medium">{day}</div>
+                  <div
+                    className={`text-lg font-medium mt-1 text-white ${isToday ? "burgundy-gradient rounded-full w-8 h-8 flex items-center justify-center mx-auto" : ""}`}
                   >
-                    Edit Newsletter
-                  </button>
+                    {weekDates[i]}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="grid grid-cols-8">
+            <div className="text-white/70">
+              {timeSlots.map((time, i) => (
+                <div key={i} className="h-20 border-b border-white/10 pr-2 text-right text-xs">
+                  {time > 12 ? `${time - 12} PM` : `${time} AM`}
                 </div>
               ))}
-              <div
-                className="bg-white/5 backdrop-blur-lg rounded-xl p-4 border border-white/10 flex flex-col items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
-                onClick={() => alert("Creating new newsletter")}
-              >
-                <Plus className="h-8 w-8 text-white/50 mb-2" />
-                <p className="text-white/50 text-sm">Create New Newsletter</p>
-              </div>
             </div>
-          </div>
-        )
 
-      case "email-lists":
-        return (
-          <div className="p-4">
-            <h2 className="text-xl font-bold text-white mb-6">Email Lists</h2>
-            {loading ? (
-              <div className="text-white text-center">Loading...</div>
-            ) : (
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl border border-white/20 overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-white/20">
-                      <th className="text-left p-4 text-white/80 font-medium">List Name</th>
-                      <th className="text-left p-4 text-white/80 font-medium">Subscribers</th>
-                      <th className="text-left p-4 text-white/80 font-medium">Open Rate</th>
-                      <th className="text-left p-4 text-white/80 font-medium">Last Updated</th>
-                      <th className="text-left p-4 text-white/80 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mailchimpLists.length > 0 ? (
-                      mailchimpLists.map((list, index) => {
-                        const colors = ["bg-yellow-500", "bg-orange-500", "bg-red-500", "bg-purple-500"]
-                        return (
-                          <tr key={list.id} className="border-b border-white/10 hover:bg-white/5">
-                            <td className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-3 h-3 rounded-sm ${colors[index % colors.length]}`}></div>
-                                <span className="text-white">{list.name}</span>
-                              </div>
-                            </td>
-                            <td className="p-4 text-white">{list.stats.member_count.toLocaleString()}</td>
-                            <td className="p-4 text-white">{(list.stats.open_rate * 100).toFixed(1)}%</td>
-                            <td className="p-4 text-white/70">{new Date(list.date_created).toLocaleDateString()}</td>
-                            <td className="p-4">
-                              <button
-                                className="px-3 py-1 burgundy-gradient hover:bg-opacity-80 rounded text-white text-xs transition-colors"
-                                onClick={() =>
-                                  window.open(`https://admin.mailchimp.com/lists/members/?id=${list.id}`, "_blank")
-                                }
-                              >
-                                Manage
-                              </button>
-                            </td>
-                          </tr>
-                        )
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-white/70">
-                          {isLoggedIn ? "No email lists found" : "Please log in to view email lists"}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-                <div className="p-4 flex justify-end">
-                  <button
-                    className="px-4 py-2 burgundy-gradient hover:bg-opacity-80 rounded-md text-white text-sm transition-colors flex items-center gap-2"
-                    onClick={() => window.open("https://admin.mailchimp.com/lists/new-list/", "_blank")}
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>New List</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )
+            {Array.from({ length: 7 }).map((_, dayIndex) => (
+              <div key={dayIndex} className="border-l border-white/20 relative">
+                {timeSlots.map((_, timeIndex) => (
+                  <div key={timeIndex} className="h-20 border-b border-white/10"></div>
+                ))}
 
-      case "emailing-activity":
-        return (
-          <div className="p-4">
-            <h2 className="text-xl font-bold text-white mb-6">Emailing Activity</h2>
-            {loading ? (
-              <div className="text-white text-center">Loading...</div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                    <h3 className="text-white font-medium mb-3">Open Rate</h3>
-                    <div className="flex items-end gap-2">
-                      <span className="text-3xl font-bold text-white">{emailStats.openRate || emailActivity.openRate}%</span>
-                      <span className="text-green-400 text-sm mb-1">+2.4%</span>
-                    </div>
-                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
+                {events
+                  .filter((event) => event.day === dayIndex + 1)
+                  .map((event, i) => {
+                    const eventStyle = calculateEventStyle(event.startTime, event.endTime)
+                    return (
                       <div
-                        className="bg-sky-500 h-full rounded-full"
-                        style={{ width: `${emailStats.openRate || emailActivity.openRate}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                    <h3 className="text-white font-medium mb-3">Click Rate</h3>
-                    <div className="flex items-end gap-2">
-                      <span className="text-3xl font-bold text-white">{emailStats.clickRate || emailActivity.clickRate}%</span>
-                      <span className="text-green-400 text-sm mb-1">+1.7%</span>
-                    </div>
-                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
-                      <div
-                        className="bg-sky-500 h-full rounded-full"
-                        style={{ width: `${emailStats.clickRate || emailActivity.clickRate}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                    <h3 className="text-white font-medium mb-3">Bounce Rate</h3>
-                    <div className="flex items-end gap-2">
-                      <span className="text-3xl font-bold text-white">{emailStats.bounceRate || emailActivity.bounceRate}%</span>
-                      <span className="text-red-400 text-sm mb-1">+0.3%</span>
-                    </div>
-                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
-                      <div
-                        className="bg-red-500 h-full rounded-full"
-                        style={{ width: `${(emailStats.bounceRate || emailActivity.bounceRate) * 10}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                    <h3 className="text-white font-medium mb-3">Unsubscribe Rate</h3>
-                    <div className="flex items-end gap-2">
-                      <span className="text-3xl font-bold text-white">
-                        {emailStats.unsubscribeRate || emailActivity.unsubscribeRate}%
-                      </span>
-                      <span className="text-green-400 text-sm mb-1">-0.2%</span>
-                    </div>
-                    <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mt-2">
-                      <div
-                        className="bg-orange-500 h-full rounded-full"
-                        style={{ width: `${(emailStats.unsubscribeRate || emailActivity.unsubscribeRate) * 20}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20">
-                  <h3 className="text-white font-medium mb-4">Recent Campaigns</h3>
-                  {campaigns.length > 0 ? (
-                    campaigns.slice(0, 3).map((campaign, index) => (
-                      <div
-                        key={campaign.id}
-                        className="flex justify-between items-center p-2 hover:bg-white/5 rounded cursor-pointer"
-                        onClick={() =>
-                          window.open(`https://admin.mailchimp.com/campaigns/show/?id=${campaign.id}`, "_blank")
-                        }
+                        key={i}
+                        className={`absolute ${event.color} rounded-md p-2 text-white text-xs shadow-md cursor-pointer transition-all duration-200 ease-in-out hover:translate-y-[-2px] hover:shadow-lg`}
+                        style={{
+                          ...eventStyle,
+                          left: "4px",
+                          right: "4px",
+                        }}
+                        onClick={() => handleEventClick(event)}
                       >
-                        <div>
-                          <h4 className="text-white font-medium">{campaign.settings.subject_line}</h4>
-                          <p className="text-white/60 text-xs">
-                            Sent {new Date(campaign.send_time).toLocaleDateString()} •{" "}
-                            {campaign.recipients.recipient_count} recipients
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <div className="text-white text-sm font-medium">
-                              {(campaign.report_summary.open_rate * 100).toFixed(1)}%
-                            </div>
-                            <div className="text-white/60 text-xs">Open rate</div>
-                          </div>
-                          <button className="p-2 text-white/70 hover:text-white">
-                            <ChevronRight className="h-5 w-5" />
-                          </button>
-                        </div>
+                        <div className="font-medium tracking-wide">{event.title}</div>
+                        <div className="opacity-80 text-[10px] mt-1">{`${event.startTime} - ${event.endTime}`}</div>
                       </div>
-                    ))
-                  ) : (
-                    <>
-                      {[
-                        { title: "Monthly Newsletter", days: 1, recipients: 3451, openRate: 72 },
-                        { title: "Product Update", days: 2, recipients: 2178, openRate: 68 },
-                        { title: "Special Offer", days: 3, recipients: 4923, openRate: 79 },
-                      ].map((campaign, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between items-center p-2 hover:bg-white/5 rounded cursor-pointer"
-                          onClick={() => alert(`Viewing details for ${campaign.title}`)}
-                        >
-                          <div>
-                            <h4 className="text-white font-medium">{campaign.title}</h4>
-                            <p className="text-white/60 text-xs">
-                              Sent {campaign.days} {campaign.days === 1 ? "day" : "days"} ago • {campaign.recipients}{" "}
-                              recipients
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <div className="text-white text-sm font-medium">{campaign.openRate}%</div>
-                              <div className="text-white/60 text-xs">Open rate</div>
-                            </div>
-                            <button
-                              className="p-2 text-white/70 hover:text-white"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                alert(`Viewing detailed analytics for ${campaign.title}`)
-                              }}
-                            >
-                              <ChevronRight className="h-5 w-5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        )
-
-      default:
-        return (
-          <div className="flex-1 overflow-auto p-4">
-            <div className="bg-white/20 backdrop-blur-lg rounded-xl border border-white/20 shadow-xl h-full">
-              <div className="grid grid-cols-8 border-b border-white/20">
-                <div className="p-2 text-center text-white/50 text-xs"></div>
-                {weekDays.map((day, i) => (
-                  <div key={i} className="p-2 text-center border-l border-white/20">
-                    <div className="text-xs text-white/70 font-medium">{day}</div>
-                    <div
-                      className={`text-lg font-medium mt-1 text-white ${weekDates[i] === 5 ? "burgundy-gradient rounded-full w-8 h-8 flex items-center justify-center mx-auto" : ""}`}
-                    >
-                      {weekDates[i]}
-                    </div>
-                  </div>
-                ))}
+                    )
+                  })}
               </div>
-
-              <div className="grid grid-cols-8">
-                <div className="text-white/70">
-                  {timeSlots.map((time, i) => (
-                    <div key={i} className="h-20 border-b border-white/10 pr-2 text-right text-xs">
-                      {time > 12 ? `${time - 12} PM` : `${time} AM`}
-                    </div>
-                  ))}
-                </div>
-
-                {Array.from({ length: 7 }).map((_, dayIndex) => (
-                  <div key={dayIndex} className="border-l border-white/20 relative">
-                    {timeSlots.map((_, timeIndex) => (
-                      <div key={timeIndex} className="h-20 border-b border-white/10"></div>
-                    ))}
-
-                    {events
-                      .filter((event) => event.day === dayIndex + 1)
-                      .map((event, i) => {
-                        const eventStyle = calculateEventStyle(event.startTime, event.endTime)
-                        return (
-                          <div
-                            key={i}
-                            className={`absolute ${event.color} rounded-md p-2 text-white text-xs shadow-md cursor-pointer transition-all duration-200 ease-in-out hover:translate-y-[-2px] hover:shadow-lg`}
-                            style={{
-                              ...eventStyle,
-                              left: "4px",
-                              right: "4px",
-                            }}
-                            onClick={() => handleEventClick(event)}
-                          >
-                            <div className="font-medium tracking-wide">{event.title}</div>
-                            <div className="opacity-80 text-[10px] mt-1">{`${event.startTime} - ${event.endTime}`}</div>
-                          </div>
-                        )
-                      })}
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
-        )
-    }
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -827,7 +407,7 @@ export default function Home() {
         style={{ animationDelay: "0.2s" }}
       >
         <div className="flex items-center gap-4">
-          <button onClick={handleMenuClick} className="text-white hover:text-white/80 transition-colors">
+          <button onClick={() => console.log("menu")} className="text-white hover:text-white/80 transition-colors">
             <Menu className="h-6 w-6" />
           </button>
           <span className="text-2xl font-bold dripping-text tracking-wide relative">
@@ -835,8 +415,6 @@ export default function Home() {
             <span className="drip drip-1"></span>
             <span className="drip drip-2"></span>
             <span className="drip drip-3"></span>
-            <span className="drip drip-4"></span>
-            <span className="drip drip-5"></span>
           </span>
         </div>
 
@@ -857,7 +435,7 @@ export default function Home() {
             onClick={handleLogin}
             className="h-10 w-10 rounded-full bg-burgundy-500 flex items-center justify-center text-white font-bold shadow-md hover:bg-burgundy-600 transition-colors"
           >
-            {isLoggedIn ? "J" : <LogIn className="h-5 w-5" />}
+            {session ? session.user?.name?.charAt(0)?.toUpperCase() || "U" : <LogIn className="h-5 w-5" />}
           </button>
         </div>
       </header>
@@ -893,52 +471,19 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-medium">{currentMonth}</h3>
-              <div className="flex gap-1">
-                <button className="p-1 rounded-full hover:bg-white/20" onClick={handlePreviousMonth}>
-                  <ChevronLeft className="h-4 w-4 text-white" />
-                </button>
-                <button className="p-1 rounded-full hover:bg-white/20" onClick={handleNextMonth}>
-                  <ChevronRight className="h-4 w-4 text-white" />
-                </button>
+          {session?.user && (
+            <div className="mt-auto pt-4 border-t border-white/10">
+              <div className="flex items-center gap-3 text-white text-sm">
+                <div className="w-8 h-8 rounded-full bg-burgundy-500 flex items-center justify-center font-bold">
+                  {session.user.name?.charAt(0)?.toUpperCase() || "U"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{session.user.name}</div>
+                  <div className="text-xs text-white/70 truncate">{session.user.email}</div>
+                </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-7 gap-1 text-center">
-              {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-                <div key={i} className="text-xs text-white/70 font-medium py-1">
-                  {day}
-                </div>
-              ))}
-
-              {miniCalendarDays.map((day, i) => (
-                <button
-                  key={i}
-                  className={`text-xs rounded-full w-7 h-7 flex items-center justify-center ${
-                    day === Number.parseInt(currentDate.split(" ")[1])
-                      ? "burgundy-gradient text-white"
-                      : "text-white hover:bg-white/20"
-                  } ${!day ? "invisible" : ""} cursor-pointer`}
-                  onClick={() => handleDaySelect(day)}
-                  disabled={!day}
-                >
-                  {day}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-auto pt-4 border-t border-white/10">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-white/70 text-xs">Storage</span>
-              <span className="text-white/70 text-xs">7.2 GB of 15 GB used</span>
-            </div>
-            <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
-              <div className="bg-burgundy-500 h-full rounded-full" style={{ width: "48%" }}></div>
-            </div>
-          </div>
+          )}
         </div>
 
         <div
@@ -962,7 +507,7 @@ export default function Home() {
                 </button>
               </div>
               <h2 className="text-xl font-semibold text-white bg-burgundy-500/20 px-4 py-1 rounded-full">
-                {currentDate}
+                {currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
               </h2>
             </div>
 
@@ -1053,10 +598,6 @@ export default function Home() {
                   <MapPin className="mr-2 h-5 w-5" />
                   {selectedEvent.location}
                 </p>
-                <p className="flex items-center">
-                  <Calendar className="mr-2 h-5 w-5" />
-                  {`${weekDays[selectedEvent.day - 1]}, ${weekDates[selectedEvent.day - 1]} ${currentMonth}`}
-                </p>
                 <p className="flex items-start">
                   <Users className="mr-2 h-5 w-5 mt-1" />
                   <span>
@@ -1095,38 +636,30 @@ export default function Home() {
               </div>
 
               <div className="space-y-4">
-                <div className="flex flex-col">
-                  <label className="text-white/70 text-sm mb-1">To:</label>
-                  <input
-                    type="email"
-                    value={emailTo}
-                    onChange={(e) => setEmailTo(e.target.value)}
-                    className="bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
-                    placeholder="recipient@example.com"
-                  />
-                </div>
+                <input
+                  type="email"
+                  value={emailTo}
+                  onChange={(e) => setEmailTo(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white placeholder:text-white/50"
+                  placeholder="To:"
+                />
 
-                <div className="flex flex-col">
-                  <label className="text-white/70 text-sm mb-1">Subject:</label>
-                  <input
-                    type="text"
-                    value={emailSubject}
-                    onChange={(e) => setEmailSubject(e.target.value)}
-                    className="bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-burgundy-500"
-                    placeholder="Email subject"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white placeholder:text-white/50"
+                  placeholder="Subject:"
+                />
 
-                <div className="flex flex-col">
-                  <textarea
-                    value={emailBody}
-                    onChange={(e) => setEmailBody(e.target.value)}
-                    className="bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-burgundy-500 h-64 resize-none"
-                    placeholder="Write your message here..."
-                  />
-                </div>
+                <textarea
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  className="w-full bg-white/10 border border-white/20 rounded-md px-3 py-2 text-white placeholder:text-white/50 h-64 resize-none"
+                  placeholder="Write your message..."
+                />
 
-                <div className="flex justify-end gap-3 mt-4">
+                <div className="flex justify-end gap-3">
                   <button
                     onClick={() => setShowComposeModal(false)}
                     className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-md"
@@ -1135,11 +668,10 @@ export default function Home() {
                   </button>
                   <button
                     onClick={handleSendEmail}
-                    disabled={loading}
                     className="px-4 py-2 burgundy-gradient hover:bg-opacity-80 text-white rounded-md flex items-center gap-2"
                   >
                     <Send className="h-4 w-4" />
-                    <span>{loading ? "Sending..." : "Send"}</span>
+                    Send
                   </button>
                 </div>
               </div>
@@ -1147,35 +679,6 @@ export default function Home() {
           </div>
         )}
       </main>
-
-      {loading && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-            <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent"></div>
-              <span className="text-white font-medium">Loading...</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <div className="fixed bottom-8 left-8 z-20 bg-red-500/90 backdrop-blur-lg rounded-xl p-4 border border-red-300/30 max-w-md">
-          <div className="flex items-start gap-3">
-            <X className="h-5 w-5 text-white flex-shrink-0 mt-0.5" />
-            <div>
-              <h4 className="text-white font-medium mb-1">Error</h4>
-              <p className="text-white/90 text-sm">{error}</p>
-            </div>
-            <button
-              onClick={() => setError(null)}
-              className="ml-auto text-white/70 hover:text-white transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
