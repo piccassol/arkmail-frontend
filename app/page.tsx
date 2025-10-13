@@ -203,7 +203,7 @@ export default function Home() {
       try {
         console.log('🔵 Attempting to send email...');
         
-        // Get the auth token from localStorage or session
+        // Get token from localStorage or session
         const token = localStorage.getItem('token') || session?.accessToken;
         
         if (!token) {
@@ -211,6 +211,7 @@ export default function Home() {
           return;
         }
   
+        // Call the sendEmail function
         await sendEmail({
           to: emailTo,
           subject: emailSubject,
