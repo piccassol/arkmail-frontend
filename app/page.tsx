@@ -66,6 +66,7 @@ export default function Home() {
   const [currentView, setCurrentView] = useState("week")
   const [currentMonth, setCurrentMonth] = useState("March 2025")
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentTime, setCurrentTime] = useState(new Date())
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
 
   // Google Calendar state
@@ -294,6 +295,25 @@ export default function Home() {
   const weekDates = getWeekDates()
   const timeSlots = Array.from({ length: 9 }, (_, i) => i + 8)
 
+  // Format time for display
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+  }
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
   const calculateEventStyle = (startTime: string, endTime: string) => {
     const start = Number.parseInt(startTime.split(":")[0]) + Number.parseInt(startTime.split(":")[1]) / 60
     const end = Number.parseInt(endTime.split(":")[0]) + Number.parseInt(endTime.split(":")[1]) / 60
@@ -506,9 +526,14 @@ export default function Home() {
                   <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
-              <h2 className="text-xl font-semibold text-white bg-burgundy-500/20 px-4 py-1 rounded-full">
-                {currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-              </h2>
+              <div className="flex flex-col">
+                <h2 className="text-xl font-semibold text-white bg-burgundy-500/20 px-4 py-1 rounded-full">
+                  {formatDate(currentDate)}
+                </h2>
+                <p className="text-sm text-white/70 text-center mt-1">
+                  {formatTime(currentTime)}
+                </p>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 rounded-md p-1">
