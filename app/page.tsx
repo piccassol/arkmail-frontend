@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { sendEmail } from './api/fetchData'
+import { getBackendToken } from '@/lib/auth'
 import Image from "next/image"
 import {
   ChevronLeft,
@@ -88,6 +89,17 @@ export default function Home() {
       loadCalendarEvents()
     }
   }, [session, currentDate])
+
+  useEffect(() => {
+    if (session?.user?.email) {
+      // Get backend token when user is logged in
+      getBackendToken(session).then(token => {
+        if (token) {
+          console.log('✅ Backend token obtained');
+        }
+      });
+    }
+  }, [session]);
 
   useEffect(() => {
     if (showAIPopup) {
@@ -203,13 +215,25 @@ export default function Home() {
       try {
         console.log('🔵 Attempting to send email...');
         
-        // Get token from localStorage or session
-        const token = localStorage.getItem('token') || session?.accessToken;
-        
-        if (!token) {
+        if (!session) {
           alert("Please sign in to send emails");
           return;
         }
+  
+        // Get backend token from localStorage, or fetch it if not available
+        let token = localStorage.getItem('backend_token');
+        
+        if (!token) {
+          console.log('🔵 No token found, fetching from backend...');
+          token = await getBackendToken(session);
+        }
+  
+        if (!token) {
+          alert("Failed to authenticate. Please try logging in again.");
+          return;
+        }
+  
+        console.log('🔵 Sending email with token...');
   
         // Call the sendEmail function
         await sendEmail({
@@ -232,6 +256,7 @@ export default function Home() {
       alert("Please fill in the recipient and subject fields.");
     }
   };
+  
   
   const togglePlay = () => {
     setIsPlaying(!isPlaying)
