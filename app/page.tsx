@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { sendEmail } from '@/utils/fetchData'
 import Image from "next/image"
 import {
   ChevronLeft,
@@ -200,21 +201,37 @@ export default function Home() {
   const handleSendEmail = async () => {
     if (emailTo && emailSubject) {
       try {
-        // Implement email sending logic here
-        alert("Email sent successfully!")
-        setShowComposeModal(false)
-        setEmailTo("")
-        setEmailSubject("")
-        setEmailBody("")
+        console.log('🔵 Attempting to send email...');
+        
+        // Get the auth token from localStorage or session
+        const token = localStorage.getItem('token') || session?.accessToken;
+        
+        if (!token) {
+          alert("Please sign in to send emails");
+          return;
+        }
+  
+        await sendEmail({
+          to: emailTo,
+          subject: emailSubject,
+          html: emailBody,
+          token: token
+        });
+  
+        alert("Email sent successfully!");
+        setShowComposeModal(false);
+        setEmailTo("");
+        setEmailSubject("");
+        setEmailBody("");
       } catch (error) {
-        console.error("Send email error:", error)
-        alert("Failed to send email. Please try again.")
+        console.error("Send email error:", error);
+        alert("Failed to send email. Please try again.");
       }
     } else {
-      alert("Please fill in the recipient and subject fields.")
+      alert("Please fill in the recipient and subject fields.");
     }
-  }
-
+  };
+  
   const togglePlay = () => {
     setIsPlaying(!isPlaying)
   }
