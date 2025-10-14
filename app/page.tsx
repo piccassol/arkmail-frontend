@@ -103,7 +103,7 @@ export default function Home() {
 
   useEffect(() => {
     if (showAIPopup) {
-      const text = "Shall I play some Mozart essentials to help you get into your Flow State?"
+      const text = "SShall I play some Mozart essentials to help you get into your Flow State?"
       let i = 0
       const typingInterval = setInterval(() => {
         if (i < text.length) {
@@ -215,21 +215,18 @@ export default function Home() {
       try {
         console.log('🔵 Attempting to send email...');
         
-        if (!session) {
-          alert("Please sign in to send emails");
-          return;
-        }
-  
-        // Get backend token from localStorage, or fetch it if not available
-        let token = localStorage.getItem('backend_token');
+        // Try multiple token sources
+        let token = localStorage.getItem('backend_token') || localStorage.getItem('token');
         
-        if (!token) {
+        // If using Google OAuth session
+        if (!token && session?.user?.email) {
           console.log('🔵 No token found, fetching from backend...');
           token = await getBackendToken(session);
         }
   
         if (!token) {
-          alert("Failed to authenticate. Please try logging in again.");
+          alert("Please sign in to send emails. Token not found.");
+          console.log('❌ No token available. LocalStorage keys:', Object.keys(localStorage));
           return;
         }
   
@@ -256,7 +253,6 @@ export default function Home() {
       alert("Please fill in the recipient and subject fields.");
     }
   };
-  
   
   const togglePlay = () => {
     setIsPlaying(!isPlaying)
