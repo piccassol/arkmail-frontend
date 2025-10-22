@@ -53,11 +53,10 @@ export default function InboxPage() {
   };
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (isSignedIn) {
       fetchInbox();
     }
-  }, [status]);
-
+  }, [isSignedIn]);
   // Archive email
   const handleArchive = async (emailId: number) => {
     try {
@@ -98,7 +97,7 @@ export default function InboxPage() {
     });
   };
 
-  if (status === "loading" || loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="border-b">

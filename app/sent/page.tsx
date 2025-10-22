@@ -47,10 +47,10 @@ export default function SentPage() {
   };
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (isSignedIn) {
       fetchSent();
     }
-  }, [status]);
+  }, [isSignedIn]);
 
   const handleTrash = async (emailId: number) => {
     try {
@@ -79,7 +79,7 @@ export default function SentPage() {
     });
   };
 
-  if (status === "loading" || loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="border-b">

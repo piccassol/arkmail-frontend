@@ -38,10 +38,10 @@ export default function ArchivePage() {
   };
 
   useEffect(() => {
-    if (status === "authenticated") {
+    if (isSignedIn) {
       fetchArchived();
     }
-  }, [status]);
+  }, [isSignedIn]);
 
   const handleRestore = async (emailId: number) => {
     try {
@@ -63,7 +63,7 @@ export default function ArchivePage() {
     }
   };
 
-  if (status === "loading" || loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-6 py-6">
