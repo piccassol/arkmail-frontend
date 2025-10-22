@@ -20,10 +20,10 @@ export default function ArchivePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (isLoaded && !isSignedIn) {
       router.push("/login");
     }
-  }, [status, router]);
+  }, [isLoaded, isSignedIn, router]);
 
   const fetchArchived = async () => {
     try {
