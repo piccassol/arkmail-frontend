@@ -28,11 +28,11 @@ export default function SentPage() {
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (isLoaded && !isSignedIn) {
       router.push("/login");
     }
-  }, [status, router]);
-
+  }, [isLoaded, isSignedIn, router]);
+  
   const fetchSent = async () => {
     try {
       setLoading(true);

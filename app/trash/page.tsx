@@ -19,11 +19,11 @@ export default function TrashPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (isLoaded && !isSignedIn) {
       router.push("/login");
     }
-  }, [status, router]);
-
+  }, [isLoaded, isSignedIn, router]);
+  
   const fetchTrash = async () => {
     try {
       setLoading(true);

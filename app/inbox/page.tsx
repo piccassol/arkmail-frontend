@@ -33,10 +33,10 @@ export default function InboxPage() {
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (status === "unauthenticated") {
+    if (isLoaded && !isSignedIn) {
       router.push("/login");
     }
-  }, [status, router]);
+  }, [isLoaded, isSignedIn, router]);
 
   // Fetch inbox emails
   const fetchInbox = async () => {
