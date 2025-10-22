@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]/route';
+import { auth } from '@clerk/nextjs/server';
 import { google } from 'googleapis';
 
 // GET /api/calendar - Get calendar events
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
     
-    if (!session?.accessToken) {
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // You'll need to get the Google access token from your backend or Clerk
+    // This depends on how you're storing OAuth tokens with Clerk
+    const backendToken = request.headers.get('Authorization')?.replace('Bearer ', '');
+    
+    if (!backendToken) {
+      return NextResponse.json(
+        { error: 'No access token provided' },
         { status: 401 }
       );
     }
@@ -27,9 +37,9 @@ export async function GET(request: NextRequest) {
       process.env.GOOGLE_CLIENT_SECRET
     );
 
+    // You'll need to get these tokens from your backend
     oauth2Client.setCredentials({
-      access_token: session.accessToken,
-      refresh_token: session.refreshToken,
+      access_token: backendToken,
     });
 
     // Create calendar instance
@@ -49,7 +59,6 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('Calendar API Error:', error);
     
-    // Handle token refresh if needed
     if (error.code === 401 || error.message?.includes('invalid_grant')) {
       return NextResponse.json(
         { error: 'Authentication expired. Please sign in again.' },
@@ -67,11 +76,20 @@ export async function GET(request: NextRequest) {
 // POST /api/calendar - Create a new calendar event
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const { userId } = await auth();
     
-    if (!session?.accessToken) {
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const backendToken = request.headers.get('Authorization')?.replace('Bearer ', '');
+    
+    if (!backendToken) {
+      return NextResponse.json(
+        { error: 'No access token provided' },
         { status: 401 }
       );
     }
@@ -86,8 +104,7 @@ export async function POST(request: NextRequest) {
     );
 
     oauth2Client.setCredentials({
-      access_token: session.accessToken,
-      refresh_token: session.refreshToken,
+      access_token: backendToken,
     });
 
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });

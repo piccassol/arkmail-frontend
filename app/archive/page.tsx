@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from '@clerk/nextjs';
 import { useRouter } from "next/navigation";
 import { emailApi, Email } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { FolderArchive, RefreshCw, Inbox, Send, Trash2, RotateCcw } from "lucide-react";
 
 export default function ArchivePage() {
-  const { data: session, status } = useSession();
+  const { user, isLoaded } = useUser();
   const router = useRouter();
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(true);

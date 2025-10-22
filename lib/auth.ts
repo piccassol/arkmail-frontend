@@ -1,5 +1,5 @@
-export async function getBackendToken(session: any): Promise<string | null> {
-  if (!session?.user?.email) {
+export async function getBackendToken(user: any): Promise<string | null> {
+  if (!user?.primaryEmailAddress?.emailAddress) {
     return null;
   }
 
@@ -10,9 +10,9 @@ export async function getBackendToken(session: any): Promise<string | null> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: session.user.email,
-        name: session.user.name || session.user.email,
-        google_id: session.user.email, // Using email as google_id for simplicity
+        email: user.primaryEmailAddress.emailAddress,
+        name: user.fullName || user.primaryEmailAddress.emailAddress,
+        google_id: user.id, // Use Clerk user ID
       }),
     });
 

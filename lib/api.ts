@@ -1,4 +1,7 @@
-import { getSession } from "next-auth/react";
+const getSession = async () => {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('backend_token') : null;
+  return token ? { accessToken: token } : null;
+};
 
 // Your backend URL - same backend for auth and emails
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://arktechnologies.ai";
