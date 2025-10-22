@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Trash2, RefreshCw, Inbox, Send, FolderArchive, RotateCcw, X } from "lucide-react";
 
 export default function TrashPage() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const router = useRouter();
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(true);
