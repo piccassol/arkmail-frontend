@@ -194,7 +194,6 @@
   }
 }
 
-//
 Update the backdrop blur for better contrast .backdrop-blur-lg {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

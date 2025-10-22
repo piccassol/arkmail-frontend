@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useSession } from "next-auth/react"
+import { useUser, useAuth, useClerk, SignInButton } from '@clerk/nextjs'
 import { sendEmail } from './api/fetchData'
-import { getBackendToken } from '@/lib/auth'
 import Image from "next/image"
 import {
   ChevronLeft,
@@ -55,7 +54,9 @@ interface CalendarEvent {
 
 export default function Home() {
   const router = useRouter()
-  const { data: session, status } = useSession()
+  const { user, isLoaded: isClerkLoaded } = useUser()
+  const { getToken } = useAuth()
+  const { signOut: clerkSignOut } = useClerk()
   const [isLoaded, setIsLoaded] = useState(false)
   const [showAIPopup, setShowAIPopup] = useState(false)
   const [typedText, setTypedText] = useState("")
@@ -75,6 +76,33 @@ export default function Home() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
   const [loadingEvents, setLoadingEvents] = useState(false)
 
+  // Show loading while Clerk initializes
+if (!isClerkLoaded) {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+    </div>
+  )
+}
+
+// Redirect to sign in if not authenticated
+if (!user) {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full border border-gray-700 text-center">
+        <img src="/logo.png" alt="Arkmail" className="h-16 mx-auto mb-4" />
+        <h1 className="text-3xl font-bold text-white mb-2">Welcome to ArkMail</h1>
+        <p className="text-gray-400 mb-6">Sign in to access your email platform</p>
+        <SignInButton mode="redirect">
+          <button className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all">
+            Sign In
+          </button>
+        </SignInButton>
+      </div>
+    </div>
+  )
+}
+
   useEffect(() => {
     setIsLoaded(true)
     const popupTimer = setTimeout(() => {
@@ -85,21 +113,10 @@ export default function Home() {
 
   // Load calendar events when user is authenticated
   useEffect(() => {
-    if (session?.accessToken) {
+    if (user) {
       loadCalendarEvents()
     }
-  }, [session, currentDate])
-
-  useEffect(() => {
-    if (session?.user?.email) {
-      // Get backend token when user is logged in
-      getBackendToken(session).then(token => {
-        if (token) {
-          console.log('✅ Backend token obtained');
-        }
-      });
-    }
-  }, [session]);
+  }, [user, currentDate])
 
   useEffect(() => {
     if (showAIPopup) {
@@ -132,9 +149,16 @@ export default function Home() {
       endOfWeek.setDate(startOfWeek.getDate() + 7)
       endOfWeek.setHours(23, 59, 59, 999)
 
-      const response = await fetch(
-        `/api/calendar?timeMin=${startOfWeek.toISOString()}&timeMax=${endOfWeek.toISOString()}`
-      )
+      const token = await getToken()
+
+const response = await fetch(
+  `/api/calendar?timeMin=${startOfWeek.toISOString()}&timeMax=${endOfWeek.toISOString()}`,
+  {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  }
+)
 
       if (response.ok) {
         const events = await response.json()
@@ -215,18 +239,12 @@ export default function Home() {
       try {
         console.log('🔵 Attempting to send email...');
         
-        // Try multiple token sources
-        let token = localStorage.getItem('backend_token') || localStorage.getItem('token');
-        
-        // If using Google OAuth session
-        if (!token && session?.user?.email) {
-          console.log('🔵 No token found, fetching from backend...');
-          token = await getBackendToken(session);
-        }
+        // Get Clerk token
+        const token = await getToken()
   
         if (!token) {
           alert("Please sign in to send emails. Token not found.");
-          console.log('❌ No token available. LocalStorage keys:', Object.keys(localStorage));
+          console.log('❌ No token available');
           return;
         }
   
@@ -266,11 +284,9 @@ export default function Home() {
     console.log("Opening settings")
   }
 
-  const handleLogin = () => {
-    if (session) {
-      router.push('/api/auth/signout')
-    } else {
-      router.push("/login")
+  const handleLogin = async () => {
+    if (user) {
+      await clerkSignOut()
     }
   }
 
@@ -313,7 +329,7 @@ export default function Home() {
     },
   ]
 
-  const events = session?.accessToken && calendarEvents.length > 0 ? convertCalendarEvents() : sampleEvents
+  const events = user && calendarEvents.length > 0 ? convertCalendarEvents() : sampleEvents
 
   const weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
   
@@ -379,7 +395,7 @@ export default function Home() {
           </div>
         )}
         
-        {!session?.accessToken && (
+        {!user && (
           <div className="mb-4 bg-yellow-500/20 backdrop-blur-lg rounded-lg p-4 text-white text-sm border border-yellow-500/30">
             📅 Sign in with Google to sync your calendar events
           </div>
@@ -450,7 +466,7 @@ export default function Home() {
     <div className="relative min-h-screen w-full overflow-hidden">
       <div className="bg-image-container flex justify-center items-center mx-auto mt-10">
         <Image
-          src="/logo.png"
+          src="/logo.jpg"
           alt="Arkmail Branding"
           width={1000}
           height={1000}
@@ -494,7 +510,7 @@ export default function Home() {
             onClick={handleLogin}
             className="h-10 w-10 rounded-full bg-burgundy-500 flex items-center justify-center text-white font-bold shadow-md hover:bg-burgundy-600 transition-colors"
           >
-            {session ? session.user?.name?.charAt(0)?.toUpperCase() || "U" : <LogIn className="h-5 w-5" />}
+          {user ? user.firstName?.charAt(0)?.toUpperCase() || "U" : <LogIn className="h-5 w-5" />}
           </button>
         </div>
       </header>
@@ -530,15 +546,15 @@ export default function Home() {
             ))}
           </div>
 
-          {session?.user && (
+          {user && (
             <div className="mt-auto pt-4 border-t border-white/10">
               <div className="flex items-center gap-3 text-white text-sm">
                 <div className="w-8 h-8 rounded-full bg-burgundy-500 flex items-center justify-center font-bold">
-                  {session.user.name?.charAt(0)?.toUpperCase() || "U"}
+                 {user.firstName?.charAt(0)?.toUpperCase() || "U"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{session.user.name}</div>
-                  <div className="text-xs text-white/70 truncate">{session.user.email}</div>
+                <div className="font-medium truncate">{user.fullName || user.firstName}</div>
+                <div className="text-xs text-white/70 truncate">{user.primaryEmailAddress?.emailAddress}</div>
                 </div>
               </div>
             </div>
@@ -744,5 +760,5 @@ export default function Home() {
         )}
       </main>
     </div>
-  )
-}
+      )
+    }
