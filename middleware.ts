@@ -1,25 +1,21 @@
+// middleware.ts
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-
-// Define which routes require authentication
-const isProtectedRoute = createRouteMatcher([
-  '/(.*)',  // Protect all routes in ArkMail
-]);
 
 // Define public routes that don't need authentication
 const isPublicRoute = createRouteMatcher([
-  '/api/webhook(.*)',  // Webhooks if you have any
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/api/webhook(.*)',
 ]);
 
 export default clerkMiddleware((auth, request) => {
-  // Skip authentication for public routes
+  // Allow public routes without authentication
   if (isPublicRoute(request)) {
     return;
   }
 
   // Protect all other routes
-  if (isProtectedRoute(request)) {
-    auth.protect();
-  }
+  auth.protect();
 });
 
 export const config = {
