@@ -1,28 +1,30 @@
-// middleware.ts
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { withClerkMiddleware, getAuth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// Define public routes that don't need authentication
-const isPublicRoute = createRouteMatcher([
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/api/webhook(.*)',
-]);
+export default withClerkMiddleware(async (req: NextRequest) => {
+  const { userId, sessionId } = getAuth(req);
 
-export default clerkMiddleware((auth, request) => {
-  // Allow public routes without authentication
-  if (isPublicRoute(request)) {
-    return;
+  // If not signed in, redirect to Clerk sign-in
+  if (!userId || !sessionId) {
+    const signInUrl = new URL('https://accounts.arktechnologies.ai/sign-in');
+    signInUrl.searchParams.set('redirect_url', req.url);
+    return NextResponse.redirect(signInUrl);
   }
 
-  // Protect all other routes
-  auth.protect();
+  // Proxy API and static files as-is
+  const { pathname } = req.nextUrl;
+  if (pathname.startsWith('/api') || pathname.match(/\.(.*)$/)) {
+    return NextResponse.next();
+  }
+
+  // Forward user ID for internal API checks
+  const res = NextResponse.next();
+  res.headers.set('x-user-id', userId);
+  return res;
 });
 
+// Prevent middleware from running on static assets
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
-  ],
+  matcher: ['/((?!_next|favicon.ico|public|static).*)'],
 };
