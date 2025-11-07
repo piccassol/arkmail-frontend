@@ -43,7 +43,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     const { userId } = await auth();
     if (!userId) {
       const to = new URL("https://accounts.arktechnologies.ai/sign-in");
-      to.searchParams.set("redirect_url", "https://arktechnologies.ai/playground/waitlist");
+      to.searchParams.set("redirect_url", "https://arktechnologies.ai/playground");
       return NextResponse.redirect(to);
     }
     return NextResponse.next();
