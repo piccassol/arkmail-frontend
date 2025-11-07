@@ -12,26 +12,40 @@ const publicAssets = createRouteMatcher([
   "/(.*)\\.(png|jpg|jpeg|svg|webp|ico|css|js|map|txt)$",
 ]);
 
+const publicWaitlist = createRouteMatcher([
+  "/playground/waitlist",
+  "/api/waitlist",
+]);
+
+const authPages = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+]);
+
 export default clerkMiddleware(async (auth, req: NextRequest) => {
-  const h = req.nextUrl.hostname.toLowerCase();
-  const p = req.nextUrl.pathname;
+  const host = req.nextUrl.hostname.toLowerCase();
+  const path = req.nextUrl.pathname;
 
-  if (publicAssets(req)) return NextResponse.next();
+  if (publicAssets(req) || authPages(req)) return NextResponse.next();
 
-  const isMain = h === "arktechnologies.ai" || h === "www.arktechnologies.ai";
-  const isAgents = h.startsWith("agents.");
-  const isMail = h.startsWith("mail.");
+  const isMain = host === "arktechnologies.ai" || host === "www.arktechnologies.ai";
+  const isAgents = host.startsWith("agents.");
+  const isMail = host.startsWith("mail.");
 
   if (isMain) {
-    const isPlayground = p === "/playground" || p.startsWith("/playground/");
-    const isWaitlistPublic = p === "/playground/waitlist" || p.startsWith("/playground/waitlist/") || p === "/api/waitlist";
-    if (!isPlayground || isWaitlistPublic) return NextResponse.next();
+    const isPlayground = path === "/playground" || path.startsWith("/playground/");
+    if (publicWaitlist(req) || !isPlayground) return NextResponse.next();
     await auth.protect();
     return NextResponse.next();
   }
 
   if (isAgents || isMail) {
-    await auth.protect();
+    const { userId } = await auth();
+    if (!userId) {
+      const to = new URL("https://accounts.arktechnologies.ai/sign-in");
+      to.searchParams.set("redirect_url", "https://arktechnologies.ai/playground/waitlist");
+      return NextResponse.redirect(to);
+    }
     return NextResponse.next();
   }
 
