@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { emailApi, Email } from "@/lib/api";
+import { getBackendToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,7 +30,7 @@ export default function SentPage() {
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.push("/login");
+      router.push("/sign-in");
     }
   }, [isLoaded, isSignedIn, router]);
   
@@ -47,10 +48,14 @@ export default function SentPage() {
   };
 
   useEffect(() => {
-    if (isSignedIn) {
-      fetchSent();
-    }
-  }, [isSignedIn]);
+    const initAndFetch = async () => {
+      if (isSignedIn && user) {
+        await getBackendToken(user);
+        fetchSent();
+      }
+    };
+    initAndFetch();
+  }, [isSignedIn, user]);
 
   const handleTrash = async (emailId: number) => {
     try {
@@ -165,10 +170,6 @@ export default function SentPage() {
           </div>
 
           <div className="lg:col-span-3">
-            <Card className="p-6 mb-6">
-              <SendEmailForm onSend={fetchSent} /> {/* Pass fetchSent to refresh list */}
-            </Card>
-
             {emails.length === 0 ? (
               <Card className="p-12 text-center">
                 <Mail className="h-16 w-16 mx-auto text-muted-foreground mb-4" />

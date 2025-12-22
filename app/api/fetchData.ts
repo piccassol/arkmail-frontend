@@ -10,7 +10,7 @@ export const fetchData = async (endpoint: string) => {
 
       return await response.json();
   } catch (error) {
-      console.error("⚠️ API request failed:", error);
+      console.error("API request failed:", error);
       return { message: "API not available yet." };
   }
 };
@@ -40,15 +40,13 @@ export async function sendEmail({
     // Accept both 200 and 201 as success
     if (response.status !== 200 && response.status !== 201) {
       const errorData = await response.text();
-      console.error('Email send error response:', errorData);
+      console.error('Email send error:', errorData);
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    const result = await response.json();
-    console.log('✅ Email sent successfully:', result);
-    return result;
+    return response.json();
   } catch (error) {
-    console.error('⚠️ Error sending email:', error);
+    console.error('Error sending email:', error);
     throw error;
   }
 }

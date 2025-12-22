@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { emailApi, Email } from "@/lib/api";
+import { getBackendToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +35,7 @@ export default function InboxPage() {
   // Redirect if not authenticated
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.push("/login");
+      router.push("/sign-in");
     }
   }, [isLoaded, isSignedIn, router]);
 
@@ -53,10 +54,14 @@ export default function InboxPage() {
   };
 
   useEffect(() => {
-    if (isSignedIn) {
-      fetchInbox();
-    }
-  }, [isSignedIn]);
+    const initAndFetch = async () => {
+      if (isSignedIn && user) {
+        await getBackendToken(user);
+        fetchInbox();
+      }
+    };
+    initAndFetch();
+  }, [isSignedIn, user]);
   // Archive email
   const handleArchive = async (emailId: number) => {
     try {
@@ -219,11 +224,13 @@ export default function InboxPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-semibold truncate">
-                            From: {email.recipient}
+                            From: {email.sender_email || "Unknown sender"}
                           </span>
-                          <Badge variant="secondary" className="text-xs">
-                            New
-                          </Badge>
+                          {!email.is_archived && !email.is_deleted && (
+                            <Badge variant="secondary" className="text-xs">
+                              New
+                            </Badge>
+                          )}
                         </div>
                         <h3 className="font-medium text-lg mb-1 truncate">
                           {email.subject}
@@ -277,7 +284,8 @@ export default function InboxPage() {
                         {selectedEmail.subject}
                       </h2>
                       <div className="text-sm text-muted-foreground space-y-1">
-                        <p><strong>From:</strong> {selectedEmail.recipient}</p>
+                        <p><strong>From:</strong> {selectedEmail.sender_email || "Unknown sender"}</p>
+                        <p><strong>To:</strong> {selectedEmail.recipient}</p>
                         <p><strong>Date:</strong> {new Date(selectedEmail.created_at).toLocaleString()}</p>
                       </div>
                     </div>

@@ -120,7 +120,7 @@ if (!user) {
 
   useEffect(() => {
     if (showAIPopup) {
-      const text = "SShall I play some Mozart essentials to help you get into your Flow State?"
+      const text = "Shall I play some Mozart essentials to help you get into your Flow State?"
       let i = 0
       const typingInterval = setInterval(() => {
         if (i < text.length) {
@@ -237,27 +237,20 @@ const response = await fetch(
   const handleSendEmail = async () => {
     if (emailTo && emailSubject) {
       try {
-        console.log('🔵 Attempting to send email...');
-        
-        // Get Clerk token
         const token = await getToken()
-  
+
         if (!token) {
           alert("Please sign in to send emails. Token not found.");
-          console.log('❌ No token available');
           return;
         }
-  
-        console.log('🔵 Sending email with token...');
-  
-        // Call the sendEmail function
+
         await sendEmail({
           to: emailTo,
           subject: emailSubject,
           html: emailBody,
           token: token
         });
-  
+
         alert("Email sent successfully!");
         setShowComposeModal(false);
         setEmailTo("");

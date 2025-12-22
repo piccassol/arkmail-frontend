@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { emailApi, Email } from "@/lib/api";
+import { getBackendToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,7 +21,7 @@ export default function TrashPage() {
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.push("/login");
+      router.push("/sign-in");
     }
   }, [isLoaded, isSignedIn, router]);
   
@@ -37,10 +38,14 @@ export default function TrashPage() {
   };
 
   useEffect(() => {
-    if (isSignedIn) {
-      fetchTrash();
-    }
-  }, [isSignedIn]);
+    const initAndFetch = async () => {
+      if (isSignedIn && user) {
+        await getBackendToken(user);
+        fetchTrash();
+      }
+    };
+    initAndFetch();
+  }, [isSignedIn, user]);
 
   const handleRestore = async (emailId: number) => {
     try {

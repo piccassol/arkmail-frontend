@@ -1,10 +1,14 @@
-const getSession = async () => {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('backend_token') : null;
-  return token ? { accessToken: token } : null;
+// Token will be set by the app when Clerk auth is ready
+let clerkToken: string | null = null;
+
+export const setAuthToken = (token: string | null) => {
+  clerkToken = token;
 };
 
+export const getAuthToken = () => clerkToken;
+
 // Your backend URL - same backend for auth and emails
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://arktechnologies.ai";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://arkmail-api.onrender.com";
 
 interface ApiRequestOptions extends RequestInit {
   requireAuth?: boolean;
@@ -25,11 +29,8 @@ async function apiRequest<T>(
   };
 
   // Add auth token if required
-  if (requireAuth) {
-    const session = await getSession();
-    if (session?.accessToken) {
-      headers["Authorization"] = `Bearer ${session.accessToken}`;
-    }
+  if (requireAuth && clerkToken) {
+    headers["Authorization"] = `Bearer ${clerkToken}`;
   }
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -59,7 +60,8 @@ export interface Email {
   subject: string;
   body: string;
   recipient: string;
-  sender_id: number;
+  sender_id: string;
+  sender_email?: string;
   is_sent: boolean;
   is_draft: boolean;
   is_archived: boolean;
@@ -223,6 +225,52 @@ export const authApi = {
    * Get current user info
    */
   getCurrentUser: () => apiRequest<User>("/api/auth/me"),
+};
+
+// ==================== NEWSLETTER API ====================
+
+export interface Newsletter {
+  id: number;
+  title: string;
+  content?: string;
+  owner_id: string;
+  created_at?: string;
+}
+
+export interface NewsletterCreate {
+  title: string;
+  content?: string;
+}
+
+export const newsletterApi = {
+  /**
+   * Get all newsletters
+   */
+  getAll: (skip = 0, limit = 50) =>
+    apiRequest<Newsletter[]>(`/api/newsletters/?skip=${skip}&limit=${limit}`),
+
+  /**
+   * Get newsletter by ID
+   */
+  getById: (id: number) =>
+    apiRequest<Newsletter>(`/api/newsletters/${id}`),
+
+  /**
+   * Create/send newsletter
+   */
+  send: (data: NewsletterCreate) =>
+    apiRequest<Newsletter>("/api/newsletters/send", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Delete newsletter
+   */
+  delete: (id: number) =>
+    apiRequest<void>(`/api/newsletters/${id}`, {
+      method: "DELETE",
+    }),
 };
 
 // ==================== HEALTH CHECK ====================

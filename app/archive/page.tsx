@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useUser } from '@clerk/nextjs';
 import { useRouter } from "next/navigation";
 import { emailApi, Email } from "@/lib/api";
+import { getBackendToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,7 +22,7 @@ export default function ArchivePage() {
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.push("/login");
+      router.push("/sign-in");
     }
   }, [isLoaded, isSignedIn, router]);
 
@@ -38,10 +39,14 @@ export default function ArchivePage() {
   };
 
   useEffect(() => {
-    if (isSignedIn) {
-      fetchArchived();
-    }
-  }, [isSignedIn]);
+    const initAndFetch = async () => {
+      if (isSignedIn && user) {
+        await getBackendToken(user);
+        fetchArchived();
+      }
+    };
+    initAndFetch();
+  }, [isSignedIn, user]);
 
   const handleRestore = async (emailId: number) => {
     try {
@@ -160,12 +165,3 @@ export default function ArchivePage() {
     </div>
   );
 }
-
-
-// ==================== app/trash/page.tsx ====================
-// Create a new file: app/trash/page.tsx
-// Copy the archive page and modify:
-// - Change FolderArchive to Trash2
-// - Use emailApi.getTrash() instead of getArchived()
-// - Add permanent delete option
-// - Use emailApi.restore() for restore action
