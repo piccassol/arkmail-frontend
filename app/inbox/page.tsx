@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { emailApi, Email } from "@/lib/api";
+import { emailApi, aiApi, Email } from "@/lib/api";
 import { getBackendToken } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,8 +21,11 @@ import {
   RefreshCw,
   Plus,
   Send,
-  FileText,
   FolderArchive,
+  Sparkles,
+  FileText,
+  Reply,
+  Loader2,
 } from "lucide-react";
 
 export default function InboxPage() {
@@ -31,15 +34,16 @@ export default function InboxPage() {
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [smartReplies, setSmartReplies] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
 
-  // Redirect if not authenticated
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
       router.push("/sign-in");
     }
   }, [isLoaded, isSignedIn, router]);
 
-  // Fetch inbox emails
   const fetchInbox = async () => {
     try {
       setLoading(true);
@@ -62,7 +66,7 @@ export default function InboxPage() {
     };
     initAndFetch();
   }, [isSignedIn, user]);
-  // Archive email
+
   const handleArchive = async (emailId: number) => {
     try {
       await emailApi.archive(emailId);
@@ -73,7 +77,6 @@ export default function InboxPage() {
     }
   };
 
-  // Move to trash
   const handleTrash = async (emailId: number) => {
     try {
       await emailApi.moveToTrash(emailId);
@@ -84,7 +87,46 @@ export default function InboxPage() {
     }
   };
 
-  // Format date
+  const handleSelectEmail = (email: Email) => {
+    setSelectedEmail(email);
+    setSummary(null);
+    setSmartReplies([]);
+  };
+
+  const handleSummarize = async () => {
+    if (!selectedEmail) return;
+
+    try {
+      setAiLoading(true);
+      const plainText = selectedEmail.body.replace(/<[^>]*>/g, "");
+      const result = await aiApi.summarize({ email_body: plainText });
+      setSummary(result.summary);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to summarize email");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleSmartReplies = async () => {
+    if (!selectedEmail) return;
+
+    try {
+      setAiLoading(true);
+      const plainText = selectedEmail.body.replace(/<[^>]*>/g, "");
+      const result = await aiApi.smartReplies({ email_body: plainText, count: 3 });
+      setSmartReplies(result.replies);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate replies");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleUseReply = (reply: string) => {
+    router.push(`/compose?body=${encodeURIComponent(reply)}&to=${encodeURIComponent(selectedEmail?.sender_email || "")}&subject=${encodeURIComponent("Re: " + (selectedEmail?.subject || ""))}`);
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -121,7 +163,6 @@ export default function InboxPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="border-b bg-card">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -153,10 +194,8 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Sidebar + Content */}
       <div className="container mx-auto px-6 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar Navigation */}
           <div className="lg:col-span-1">
             <Card className="p-4">
               <nav className="space-y-2">
@@ -196,7 +235,6 @@ export default function InboxPage() {
             </Card>
           </div>
 
-          {/* Email List */}
           <div className="lg:col-span-3">
             {emails.length === 0 ? (
               <Card className="p-12 text-center">
@@ -218,7 +256,7 @@ export default function InboxPage() {
                     className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
                       selectedEmail?.id === email.id ? "bg-accent border-primary" : ""
                     }`}
-                    onClick={() => setSelectedEmail(email)}
+                    onClick={() => handleSelectEmail(email)}
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -274,7 +312,6 @@ export default function InboxPage() {
               </div>
             )}
 
-            {/* Email Detail View */}
             {selectedEmail && (
               <Card className="mt-6 p-6">
                 <div className="space-y-4">
@@ -289,13 +326,78 @@ export default function InboxPage() {
                         <p><strong>Date:</strong> {new Date(selectedEmail.created_at).toLocaleString()}</p>
                       </div>
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => setSelectedEmail(null)}
-                    >
-                      Close
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSummarize}
+                        disabled={aiLoading}
+                      >
+                        {aiLoading ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <FileText className="h-4 w-4 mr-1" />
+                        )}
+                        TL;DR
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSmartReplies}
+                        disabled={aiLoading}
+                      >
+                        {aiLoading ? (
+                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-4 w-4 mr-1" />
+                        )}
+                        Smart Reply
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedEmail(null);
+                          setSummary(null);
+                          setSmartReplies([]);
+                        }}
+                      >
+                        Close
+                      </Button>
+                    </div>
                   </div>
+
+                  {summary && (
+                    <div className="bg-muted p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Summary</span>
+                      </div>
+                      <p className="text-sm">{summary}</p>
+                    </div>
+                  )}
+
+                  {smartReplies.length > 0 && (
+                    <div className="bg-muted p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Reply className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Quick Replies</span>
+                      </div>
+                      <div className="space-y-2">
+                        {smartReplies.map((reply, index) => (
+                          <Button
+                            key={index}
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-start text-left h-auto py-2 whitespace-normal"
+                            onClick={() => handleUseReply(reply)}
+                          >
+                            {reply}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <hr />
                   <div
                     className="prose prose-sm max-w-none dark:prose-invert"

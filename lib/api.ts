@@ -273,6 +273,79 @@ export const newsletterApi = {
     }),
 };
 
+// ==================== AI API ====================
+
+export interface ComposeRequest {
+  prompt: string;
+  tone?: string;
+}
+
+export interface ImproveRequest {
+  text: string;
+  instruction?: string;
+}
+
+export interface SubjectLinesRequest {
+  email_body: string;
+  count?: number;
+}
+
+export interface SummarizeRequest {
+  email_body: string;
+}
+
+export interface SmartRepliesRequest {
+  email_body: string;
+  count?: number;
+}
+
+export const aiApi = {
+  /**
+   * Generate email draft from prompt
+   */
+  compose: (data: ComposeRequest) =>
+    apiRequest<{ content: string }>("/api/ai/compose", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Improve or rewrite text
+   */
+  improve: (data: ImproveRequest) =>
+    apiRequest<{ content: string }>("/api/ai/improve", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Generate subject line options
+   */
+  generateSubjectLines: (data: SubjectLinesRequest) =>
+    apiRequest<{ subject_lines: string[] }>("/api/ai/subject-lines", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Summarize email content
+   */
+  summarize: (data: SummarizeRequest) =>
+    apiRequest<{ summary: string }>("/api/ai/summarize", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  /**
+   * Generate smart reply suggestions
+   */
+  smartReplies: (data: SmartRepliesRequest) =>
+    apiRequest<{ replies: string[] }>("/api/ai/smart-replies", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
+
 // ==================== HEALTH CHECK ====================
 
 export const healthCheck = () =>
