@@ -1,6 +1,6 @@
 import { setAuthToken } from './api';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://arkmail-api.onrender.com";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://mailapi.arktechnologies.ai";
 
 export async function getBackendToken(user: any): Promise<string | null> {
   if (!user?.primaryEmailAddress?.emailAddress) {
@@ -50,4 +50,15 @@ export function clearBackendToken(): void {
     localStorage.removeItem('backend_token');
   }
   setAuthToken(null);
+}
+
+/**
+ * Get the current auth token from localStorage
+ * Use this for API calls - call getBackendToken(user) first to ensure token exists
+ */
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  return localStorage.getItem('backend_token');
 }

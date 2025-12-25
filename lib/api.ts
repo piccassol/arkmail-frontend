@@ -8,7 +8,7 @@ export const setAuthToken = (token: string | null) => {
 export const getAuthToken = () => clerkToken;
 
 // Your backend URL - same backend for auth and emails
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://arkmail-api.onrender.com";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://mailapi.arktechnologies.ai";
 
 interface ApiRequestOptions extends RequestInit {
   requireAuth?: boolean;

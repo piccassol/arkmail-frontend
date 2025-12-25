@@ -1,6 +1,6 @@
 export const fetchData = async (endpoint: string) => {
   try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://arkmail-api.onrender.com";
+      const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://mailapi.arktechnologies.ai";
 
       const response = await fetch(`${API_BASE_URL}/${endpoint}`);
 
@@ -27,8 +27,8 @@ export async function sendEmail({
   token: string;
 }) {
   try {
-    const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://arkmail-api.onrender.com";
-    const response = await fetch(`${API_BASE_URL}/api/emails/send`, {
+    // Use local API route to avoid CORS
+    const response = await fetch('/api/emails/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
