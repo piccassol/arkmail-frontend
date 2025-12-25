@@ -152,7 +152,7 @@ export default function Home() {
   // Show loading while Clerk initializes
   if (!isClerkLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-black">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     )
@@ -161,8 +161,8 @@ export default function Home() {
   // Redirect to sign in if not authenticated
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md w-full border border-gray-700 text-center">
+      <div className="flex items-center justify-center min-h-screen bg-black">
+        <div className="bg-gray-900 rounded-2xl shadow-2xl p-8 max-w-md w-full border border-gray-800 text-center">
           <img src="/logo.jpg" alt="Arkmail" className="h-16 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-white mb-2">ArkMail Agent Dashboard</h1>
           <p className="text-gray-400 mb-6">Monitor your AI email agents in real-time</p>
@@ -356,7 +356,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       {/* Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 -z-10" />
+      <div className="fixed inset-0 bg-black -z-10" />
 
       {/* Header */}
       <header
