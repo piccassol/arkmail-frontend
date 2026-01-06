@@ -16,7 +16,7 @@
 
 ### 🌐 Live Deployment  
 **Frontend:** [https://mail.arktechnologies.ai/](https://mail.arktechnologies.ai/)  
-**Backend:** [ArkMail API](https://github.com/piccassol/arkmail)
+**Backend:** [ArkMail API](https://mailapi.arktechnologies.ai/docs)
 
 ---
 
@@ -104,6 +104,7 @@ MIT License © 2025 [Ark Technologies](https://arktechnologies.ai)
 💬 [Dashboard](https://arktechnologies.ai/dashboard)
 
 ```
+
 
 
 
