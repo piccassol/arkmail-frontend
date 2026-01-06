@@ -50,7 +50,7 @@ Powered by **Ark Technologies’ agent-based AI**, ArkMail merges messaging, ana
 - 1 Free Email Campaign  
 - 5 Lead Generation Searches  
 
-Start your trial now at [Ark Dashboard](https://arktechnologies.ai/dashboard)
+Start your trial now at [Ark Dashboard](https://arktechnologies.ai/playground)
 
 ---
 
@@ -101,9 +101,10 @@ MIT License © 2025 [Ark Technologies](https://arktechnologies.ai)
 
 🌍 [Website](https://arktechnologies.ai)
 📧 [Mail Portal](https://mail.arktechnologies.ai)
-💬 [Dashboard](https://arktechnologies.ai/dashboard)
+💬 [Dashboard](https://arktechnologies.ai/playground)
 
 ```
+
 
 
 
